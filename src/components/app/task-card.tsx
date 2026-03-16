@@ -1,0 +1,123 @@
+import { CalendarRange, CheckCircle2, PencilLine, Trash2, Users, Video } from "lucide-react";
+
+import { Button, buttonVariants } from "@/components/shared/button";
+import { formatClockTime, formatParticipantNames, getTaskAnchorId } from "@/lib/daystack";
+import { cn } from "@/lib/utils";
+import type { PlannerTask, TaskVisualState } from "@/types/daystack";
+
+interface TaskCardProps {
+  focusedTaskId?: string | null;
+  task: PlannerTask;
+  visualState: TaskVisualState;
+  isPending: boolean;
+  onEdit: (task: PlannerTask) => void;
+  onDelete: (task: PlannerTask) => void;
+  onToggle: (task: PlannerTask) => void;
+}
+
+const stateStyles: Record<TaskVisualState, string> = {
+  active: "border-cyan-200 bg-cyan-50/78 shadow-[0_14px_24px_rgba(24,190,239,0.12)]",
+  completed: "border-emerald-200 bg-emerald-50/70 shadow-[0_12px_22px_rgba(34,197,94,0.08)]",
+  upcoming: "border-indigo-200 bg-indigo-50/68 shadow-[0_12px_22px_rgba(99,102,241,0.06)]",
+  pending: "border-border/80 bg-white/94 shadow-[0_12px_22px_rgba(15,23,42,0.05)]",
+  overdue: "border-rose-200 bg-rose-50/76 shadow-[0_12px_22px_rgba(244,63,94,0.08)]",
+};
+
+const stateLabels: Record<TaskVisualState, string> = {
+  active: "Active",
+  completed: "Completed",
+  upcoming: "Upcoming",
+  pending: "Pending",
+  overdue: "Overdue",
+};
+
+export function TaskCard({ focusedTaskId, task, visualState, isPending, onEdit, onDelete, onToggle }: TaskCardProps) {
+  const isMeeting = task.task_type === "meeting";
+
+  return (
+    <div
+      id={getTaskAnchorId(task.id)}
+      className={cn(
+        "rounded-[20px] border px-3 py-3 transition-[transform,box-shadow,border-color,background-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 sm:px-4",
+        stateStyles[visualState],
+        focusedTaskId === task.id && "ring-2 ring-primary/35 ring-offset-2 ring-offset-background",
+      )}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="shrink-0 sm:w-36">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-secondary-foreground/70">
+            {stateLabels[visualState]}
+          </p>
+          <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            {isMeeting ? <Video className="h-3.5 w-3.5 text-primary" /> : <CalendarRange className="h-3.5 w-3.5 text-secondary-foreground" />}
+            {formatClockTime(task.start_time)} to {formatClockTime(task.end_time)}
+          </p>
+        </div>
+
+        <button
+          suppressHydrationWarning
+          type="button"
+          className="min-w-0 flex-1 text-left focus:outline-none"
+          onClick={() => onEdit(task)}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate text-sm font-semibold text-foreground sm:text-base">{task.title}</p>
+            {isMeeting ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-cyan-50/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700">
+                <Video className="h-3 w-3" />
+                Meeting
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-secondary-foreground">
+            <span>Tap to edit.</span>
+            {isMeeting && task.participants.length > 0 ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" />
+                {formatParticipantNames(task.participants, 3)}
+              </span>
+            ) : null}
+          </div>
+        </button>
+
+        <div className="flex shrink-0 items-center gap-2">
+          {isMeeting && task.meeting_link ? (
+            <a
+              href={task.meeting_link}
+              target="_blank"
+              rel="noreferrer"
+              className={buttonVariants({ variant: "ghost", size: "sm", className: "h-10 px-4" })}
+            >
+              <Video className="h-4 w-4" />
+              Join
+            </a>
+          ) : null}
+          <Button size="sm" variant={task.status === "completed" ? "secondary" : "primary"} onClick={() => onToggle(task)} disabled={isPending}>
+            <CheckCircle2 className="h-4 w-4" />
+            {task.status === "completed" ? "Undo" : "Done"}
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="h-10 w-10 px-0"
+            onClick={() => onEdit(task)}
+            disabled={isPending}
+            aria-label={`Edit ${task.title}`}
+          >
+            <PencilLine className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="danger"
+            className="h-10 w-10 px-0"
+            onClick={() => onDelete(task)}
+            disabled={isPending}
+            aria-label={`Delete ${task.title}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
