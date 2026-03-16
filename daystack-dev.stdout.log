@@ -1,0 +1,380 @@
+
+> daystack@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.102:3000
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 2.8s
+ GET /app 200 in 4.0s (compile: 731ms, proxy.ts: 1337ms, render: 1952ms)
+ GET /app 200 in 1940ms (compile: 35ms, proxy.ts: 544ms, render: 1361ms)
+ GET / 200 in 656ms (compile: 143ms, proxy.ts: 19ms, render: 495ms)
+ GET /app 200 in 2.3s (compile: 29ms, proxy.ts: 641ms, render: 1636ms)
+✓ Compiled in 1593ms
+ GET / 200 in 944ms (compile: 10ms, proxy.ts: 668ms, render: 266ms)
+ GET /login 200 in 1142ms (compile: 354ms, proxy.ts: 37ms, render: 752ms)
+ GET /app 200 in 2.6s (compile: 840ms, proxy.ts: 596ms, render: 1118ms)
+ GET /app 200 in 1634ms (compile: 17ms, proxy.ts: 458ms, render: 1159ms)
+✓ Compiled in 153ms
+ GET / 200 in 4.0s (compile: 13ms, proxy.ts: 3.9s, render: 135ms)
+ GET /app 200 in 4.3s (compile: 480ms, proxy.ts: 1877ms, render: 1895ms)
+✓ Compiled in 270ms
+ GET / 200 in 1182ms (compile: 9ms, proxy.ts: 1109ms, render: 65ms)
+✓ Compiled in 765ms
+✓ Compiled in 1165ms
+✓ Compiled in 80ms
+✓ Compiled in 93ms
+✓ Compiled in 232ms
+✓ Compiled in 276ms
+ GET /app 200 in 18.5s (compile: 189ms, proxy.ts: 18.1s, render: 224ms)
+ GET /app 200 in 566ms (compile: 7ms, proxy.ts: 470ms, render: 89ms)
+ GET /app 200 in 903ms (compile: 17ms, proxy.ts: 782ms, render: 104ms)
+ GET / 200 in 831ms (compile: 232ms, proxy.ts: 427ms, render: 173ms)
+ GET / 200 in 976ms (compile: 7ms, proxy.ts: 894ms, render: 74ms)
+ GET / 200 in 24.4s (compile: 4ms, proxy.ts: 24.3s, render: 55ms)
+✓ Compiled in 99ms
+✓ Compiled in 112ms
+✓ Compiled in 162ms
+✓ Compiled in 152ms
+✓ Compiled in 175ms
+✓ Compiled in 166ms
+✓ Compiled in 71ms
+✓ Compiled in 75ms
+✓ Compiled in 178ms
+✓ Compiled in 90ms
+✓ Compiled in 156ms
+✓ Compiled in 128ms
+ GET /app 200 in 4.6s (compile: 218ms, proxy.ts: 1799ms, render: 2.6s)
+✓ Compiled in 71ms
+ GET / 200 in 2.7s (compile: 14ms, proxy.ts: 2.3s, render: 408ms)
+✓ Compiled in 71ms
+✓ Compiled in 133ms
+ GET / 200 in 1380ms (compile: 7ms, proxy.ts: 1007ms, render: 366ms)
+ GET /app 200 in 2.7s (compile: 190ms, proxy.ts: 1084ms, render: 1463ms)
+✓ Compiled in 113ms
+ GET / 200 in 901ms (compile: 8ms, proxy.ts: 425ms, render: 468ms)
+ GET /app 200 in 1855ms (compile: 229ms, proxy.ts: 504ms, render: 1123ms)
+✓ Compiled in 114ms
+✓ Compiled in 200ms
+✓ Compiled in 127ms
+✓ Compiled in 232ms
+ GET / 200 in 674ms (compile: 7ms, proxy.ts: 583ms, render: 84ms)
+ GET /app 200 in 1878ms (compile: 332ms, proxy.ts: 1043ms, render: 503ms)
+✓ Compiled in 171ms
+✓ Compiled in 83ms
+✓ Compiled in 138ms
+✓ Compiled in 212ms
+ GET / 200 in 1504ms (compile: 9ms, proxy.ts: 1400ms, render: 95ms)
+ GET /app 200 in 1925ms (compile: 253ms, proxy.ts: 1004ms, render: 668ms)
+✓ Compiled in 112ms
+✓ Compiled in 61ms
+✓ Compiled in 107ms
+✓ Compiled in 100ms
+ GET / 200 in 1083ms (compile: 8ms, proxy.ts: 980ms, render: 95ms)
+ GET /app 200 in 1322ms (compile: 258ms, proxy.ts: 551ms, render: 512ms)
+✓ Compiled in 70ms
+✓ Compiled in 73ms
+ GET / 200 in 512ms (compile: 10ms, proxy.ts: 431ms, render: 72ms)
+ GET /app 200 in 1439ms (compile: 183ms, proxy.ts: 733ms, render: 523ms)
+✓ Compiled in 107ms
+ GET / 200 in 864ms (compile: 5ms, proxy.ts: 791ms, render: 69ms)
+ GET /app 200 in 1673ms (compile: 273ms, proxy.ts: 926ms, render: 473ms)
+✓ Compiled in 94ms
+ GET / 200 in 491ms (compile: 18ms, proxy.ts: 373ms, render: 99ms)
+ GET /app 200 in 1387ms (compile: 215ms, proxy.ts: 650ms, render: 523ms)
+ GET /app 200 in 2.2s (compile: 5ms, proxy.ts: 607ms, render: 1608ms)
+ GET /app 200 in 2.1s (compile: 6ms, proxy.ts: 296ms, render: 1755ms)
+ GET /login 200 in 1564ms (compile: 427ms, proxy.ts: 19ms, render: 1118ms)
+ GET /signup 200 in 168ms (compile: 124ms, proxy.ts: 6ms, render: 38ms)
+ GET /login 200 in 54ms (compile: 5ms, proxy.ts: 5ms, render: 44ms)
+✓ Compiled in 116ms
+ GET /login 200 in 888ms (compile: 219ms, proxy.ts: 137ms, render: 532ms)
+ GET /login 200 in 454ms (compile: 29ms, proxy.ts: 42ms, render: 383ms)
+ GET /login 200 in 425ms (compile: 110ms, proxy.ts: 30ms, render: 285ms)
+ GET /login 200 in 304ms (compile: 13ms, proxy.ts: 69ms, render: 222ms)
+ GET /login 200 in 247ms (compile: 17ms, proxy.ts: 62ms, render: 169ms)
+ GET /login 200 in 200ms (compile: 11ms, proxy.ts: 73ms, render: 116ms)
+ GET /login 200 in 505ms (compile: 25ms, proxy.ts: 30ms, render: 449ms)
+ GET /login 200 in 397ms (compile: 9ms, proxy.ts: 16ms, render: 372ms)
+✓ Compiled in 118ms
+✓ Compiled in 97ms
+ GET /login 200 in 232ms (compile: 8ms, proxy.ts: 12ms, render: 212ms)
+ GET /login 200 in 143ms (compile: 11ms, proxy.ts: 11ms, render: 120ms)
+✓ Compiled in 78ms
+ GET /login 200 in 169ms (compile: 7ms, proxy.ts: 12ms, render: 150ms)
+ GET /login 200 in 89ms (compile: 6ms, proxy.ts: 9ms, render: 74ms)
+ GET /app 200 in 3.6s (compile: 227ms, proxy.ts: 428ms, render: 3.0s)
+ GET /app 200 in 3.2s (compile: 6ms, proxy.ts: 471ms, render: 2.7s)
+✓ Compiled in 68ms
+ GET /app 200 in 1530ms (compile: 321ms, proxy.ts: 435ms, render: 775ms)
+ GET /app 200 in 1013ms (compile: 11ms, proxy.ts: 513ms, render: 489ms)
+✓ Compiled in 147ms
+✓ Compiled in 151ms
+✓ Compiled in 152ms
+✓ Compiled in 133ms
+✓ Compiled in 73ms
+✓ Compiled in 130ms
+ GET /app 200 in 4.1s (compile: 247ms, proxy.ts: 3.3s, render: 576ms)
+ GET /app 200 in 4.8s (compile: 5ms, proxy.ts: 4.4s, render: 413ms)
+ GET /app 200 in 580ms (compile: 8ms, proxy.ts: 381ms, render: 191ms)
+ GET /app 200 in 1532ms (compile: 143ms, proxy.ts: 793ms, render: 596ms)
+ GET /app 200 in 1738ms (compile: 12ms, proxy.ts: 738ms, render: 988ms)
+ GET /app 200 in 6.3s (compile: 15ms, proxy.ts: 4.3s, render: 1984ms)
+ GET /app 200 in 776ms (compile: 21ms, proxy.ts: 572ms, render: 182ms)
+ GET /app 200 in 1747ms (compile: 16ms, proxy.ts: 583ms, render: 1148ms)
+ GET /app 200 in 1409ms (compile: 175ms, proxy.ts: 580ms, render: 655ms)
+ GET /app 200 in 818ms (compile: 8ms, proxy.ts: 374ms, render: 435ms)
+ GET /app 200 in 952ms (compile: 6ms, proxy.ts: 366ms, render: 580ms)
+ GET /app 200 in 1105ms (compile: 11ms, proxy.ts: 386ms, render: 709ms)
+ GET /app 200 in 1224ms (compile: 6ms, proxy.ts: 830ms, render: 388ms)
+ GET /app 200 in 903ms (compile: 5ms, proxy.ts: 525ms, render: 373ms)
+ GET /app 200 in 1253ms (compile: 4ms, proxy.ts: 489ms, render: 759ms)
+ GET /app 200 in 986ms (compile: 9ms, proxy.ts: 555ms, render: 421ms)
+ GET /app 200 in 895ms (compile: 4ms, proxy.ts: 485ms, render: 406ms)
+ GET /app 200 in 976ms (compile: 8ms, proxy.ts: 362ms, render: 606ms)
+ GET /app 200 in 888ms (compile: 5ms, proxy.ts: 348ms, render: 535ms)
+ GET /app 200 in 862ms (compile: 8ms, proxy.ts: 319ms, render: 535ms)
+ GET /app 200 in 897ms (compile: 6ms, proxy.ts: 346ms, render: 546ms)
+ GET /app 200 in 996ms (compile: 6ms, proxy.ts: 305ms, render: 685ms)
+ GET /app 200 in 1353ms (compile: 6ms, proxy.ts: 814ms, render: 533ms)
+ GET /app 200 in 786ms (compile: 6ms, proxy.ts: 324ms, render: 456ms)
+ GET /app 200 in 984ms (compile: 6ms, proxy.ts: 372ms, render: 606ms)
+ GET /app 200 in 819ms (compile: 26ms, proxy.ts: 341ms, render: 451ms)
+ GET /app 200 in 824ms (compile: 8ms, proxy.ts: 419ms, render: 398ms)
+ GET /app 200 in 679ms (compile: 5ms, proxy.ts: 302ms, render: 372ms)
+ GET /app 200 in 696ms (compile: 4ms, proxy.ts: 302ms, render: 389ms)
+ GET /app 200 in 870ms (compile: 7ms, proxy.ts: 301ms, render: 563ms)
+ GET /app 200 in 726ms (compile: 9ms, proxy.ts: 295ms, render: 422ms)
+ GET /app 200 in 693ms (compile: 6ms, proxy.ts: 302ms, render: 385ms)
+ GET /app 200 in 806ms (compile: 5ms, proxy.ts: 292ms, render: 508ms)
+ GET /app 200 in 852ms (compile: 6ms, proxy.ts: 332ms, render: 514ms)
+ GET /app 200 in 755ms (compile: 6ms, proxy.ts: 309ms, render: 440ms)
+ GET /app 200 in 911ms (compile: 7ms, proxy.ts: 348ms, render: 556ms)
+ GET /app 200 in 909ms (compile: 5ms, proxy.ts: 463ms, render: 442ms)
+ GET /app 200 in 766ms (compile: 5ms, proxy.ts: 356ms, render: 406ms)
+ GET /app 200 in 895ms (compile: 5ms, proxy.ts: 341ms, render: 550ms)
+ GET /app 200 in 867ms (compile: 5ms, proxy.ts: 380ms, render: 482ms)
+ GET /app 200 in 655ms (compile: 5ms, proxy.ts: 296ms, render: 354ms)
+ GET /app 200 in 834ms (compile: 5ms, proxy.ts: 299ms, render: 530ms)
+ GET /app 200 in 741ms (compile: 7ms, proxy.ts: 310ms, render: 425ms)
+ GET /app 200 in 898ms (compile: 5ms, proxy.ts: 461ms, render: 431ms)
+✓ Compiled in 124ms
+✓ Compiled in 71ms
+✓ Compiled in 86ms
+ GET /app 200 in 1752ms (compile: 228ms, proxy.ts: 873ms, render: 652ms)
+ GET /app 200 in 1150ms (compile: 27ms, proxy.ts: 374ms, render: 749ms)
+  Reload env: .env.local
+✓ Compiled in 1186ms
+ GET /app 200 in 1145ms (compile: 210ms, proxy.ts: 494ms, render: 441ms)
+ GET /app 200 in 829ms (compile: 5ms, proxy.ts: 328ms, render: 496ms)
+ GET /app 200 in 832ms (compile: 5ms, proxy.ts: 302ms, render: 524ms)
+ GET /app 200 in 727ms (compile: 6ms, proxy.ts: 349ms, render: 371ms)
+ GET /app 200 in 933ms (compile: 5ms, proxy.ts: 393ms, render: 536ms)
+ GET /app 200 in 709ms (compile: 4ms, proxy.ts: 302ms, render: 403ms)
+ GET /app 200 in 1524ms (compile: 4ms, proxy.ts: 1065ms, render: 454ms)
+ GET /app 200 in 703ms (compile: 5ms, proxy.ts: 287ms, render: 411ms)
+✓ Compiled in 63ms
+✓ Compiled in 94ms
+ GET /app 200 in 2.9s (compile: 214ms, proxy.ts: 1143ms, render: 1517ms)
+ GET /app 200 in 2.0s (compile: 15ms, proxy.ts: 438ms, render: 1583ms)
+ GET / 500 in 3.3s (compile: 2.1s, proxy.ts: 925ms, render: 288ms)
+ GET / 500 in 383ms (compile: 31ms, proxy.ts: 323ms, render: 30ms)
+✓ Compiled in 94ms
+ GET /app 200 in 1339ms (compile: 9ms, proxy.ts: 929ms, render: 400ms)
+ GET / 200 in 1399ms (compile: 148ms, proxy.ts: 1050ms, render: 201ms)
+✓ Compiled in 212ms
+ GET / 200 in 1853ms (compile: 115ms, proxy.ts: 404ms, render: 1334ms)
+ GET / 500 in 1792ms (compile: 11ms, proxy.ts: 508ms, render: 1273ms)
+ GET /app 200 in 1879ms (compile: 916ms, proxy.ts: 592ms, render: 371ms)
+✓ Compiled in 170ms
+ GET / 500 in 1404ms (compile: 132ms, proxy.ts: 508ms, render: 764ms)
+✓ Compiled in 159ms
+✓ Compiled in 330ms
+✓ Compiled in 190ms
+ GET / 200 in 2.3s (compile: 216ms, proxy.ts: 1850ms, render: 191ms)
+ GET /app 200 in 2.3s (compile: 18ms, proxy.ts: 1843ms, render: 395ms)
+✓ Compiled in 76ms
+✓ Compiled in 151ms
+ GET / 200 in 1327ms (compile: 339ms, proxy.ts: 880ms, render: 108ms)
+ GET /app 200 in 2.1s (compile: 418ms, proxy.ts: 1385ms, render: 298ms)
+✓ Compiled in 371ms
+ GET / 200 in 1374ms (compile: 13ms, proxy.ts: 395ms, render: 966ms)
+ GET /app 200 in 1440ms (compile: 440ms, proxy.ts: 386ms, render: 614ms)
+ GET /app 200 in 4.0s (compile: 12ms, proxy.ts: 931ms, render: 3.1s)
+✓ Compiled in 326ms
+ GET / 200 in 1314ms (compile: 15ms, proxy.ts: 505ms, render: 794ms)
+ GET /app 200 in 1252ms (compile: 389ms, proxy.ts: 516ms, render: 347ms)
+✓ Compiled in 240ms
+✓ Compiled in 162ms
+✓ Compiled in 196ms
+ GET /app 200 in 1835ms (compile: 441ms, proxy.ts: 1039ms, render: 355ms)
+ GET / 200 in 1906ms (compile: 15ms, proxy.ts: 1777ms, render: 114ms)
+✓ Compiled in 172ms
+ GET /app 200 in 3.9s (compile: 386ms, proxy.ts: 1039ms, render: 2.5s)
+✓ Compiled in 169ms
+ GET / 200 in 1260ms (compile: 14ms, proxy.ts: 421ms, render: 825ms)
+ GET /app 200 in 3.3s (compile: 386ms, proxy.ts: 567ms, render: 2.4s)
+✓ Compiled in 320ms
+✓ Compiled in 535ms
+ GET / 200 in 678ms (compile: 10ms, proxy.ts: 587ms, render: 81ms)
+ GET /app 200 in 3.9s (compile: 395ms, proxy.ts: 1204ms, render: 2.3s)
+✓ Compiled in 292ms
+✓ Compiled in 128ms
+✓ Compiled in 134ms
+✓ Compiled in 316ms
+✓ Compiled in 230ms
+ GET / 200 in 2.8s (compile: 423ms, proxy.ts: 2.2s, render: 179ms)
+ GET / 200 in 1533ms (compile: 11ms, proxy.ts: 1263ms, render: 259ms)
+ GET /app 200 in 4.4s (compile: 412ms, proxy.ts: 1182ms, render: 2.8s)
+ GET /app 200 in 1358ms (compile: 60ms, proxy.ts: 772ms, render: 526ms)
+ GET /app 200 in 2.9s (compile: 18ms, proxy.ts: 1192ms, render: 1677ms)
+ GET / 200 in 1151ms (compile: 33ms, proxy.ts: 717ms, render: 401ms)
+ GET /app 200 in 1177ms (compile: 36ms, proxy.ts: 877ms, render: 264ms)
+ GET / 200 in 738ms (compile: 17ms, proxy.ts: 591ms, render: 130ms)
+ GET /app 200 in 838ms (compile: 19ms, proxy.ts: 586ms, render: 233ms)
+ GET / 200 in 812ms (compile: 20ms, proxy.ts: 641ms, render: 152ms)
+ GET /app 200 in 994ms (compile: 19ms, proxy.ts: 721ms, render: 254ms)
+ GET / 200 in 987ms (compile: 23ms, proxy.ts: 827ms, render: 138ms)
+ GET /app 200 in 1006ms (compile: 17ms, proxy.ts: 689ms, render: 301ms)
+ GET / 200 in 981ms (compile: 24ms, proxy.ts: 846ms, render: 112ms)
+ GET /app 200 in 973ms (compile: 20ms, proxy.ts: 680ms, render: 273ms)
+ GET / 200 in 996ms (compile: 16ms, proxy.ts: 839ms, render: 141ms)
+ GET / 200 in 916ms (compile: 17ms, proxy.ts: 829ms, render: 71ms)
+ GET /app 200 in 1366ms (compile: 21ms, proxy.ts: 959ms, render: 385ms)
+ GET / 200 in 901ms (compile: 16ms, proxy.ts: 812ms, render: 72ms)
+ GET /app 200 in 1011ms (compile: 18ms, proxy.ts: 678ms, render: 315ms)
+ GET / 200 in 907ms (compile: 17ms, proxy.ts: 816ms, render: 74ms)
+ GET /app 200 in 1018ms (compile: 17ms, proxy.ts: 620ms, render: 381ms)
+ GET / 200 in 900ms (compile: 16ms, proxy.ts: 815ms, render: 68ms)
+ GET /app 200 in 1014ms (compile: 19ms, proxy.ts: 661ms, render: 333ms)
+ GET / 200 in 1086ms (compile: 295ms, proxy.ts: 626ms, render: 165ms)
+ GET /app 200 in 1195ms (compile: 26ms, proxy.ts: 683ms, render: 485ms)
+ GET / 200 in 1002ms (compile: 16ms, proxy.ts: 656ms, render: 330ms)
+ GET /app 200 in 1068ms (compile: 81ms, proxy.ts: 677ms, render: 310ms)
+ GET / 200 in 1170ms (compile: 23ms, proxy.ts: 705ms, render: 442ms)
+ GET /app 200 in 1168ms (compile: 22ms, proxy.ts: 843ms, render: 303ms)
+ GET / 200 in 1230ms (compile: 11ms, proxy.ts: 839ms, render: 380ms)
+ GET /app 200 in 1036ms (compile: 30ms, proxy.ts: 665ms, render: 341ms)
+ GET / 200 in 1238ms (compile: 16ms, proxy.ts: 850ms, render: 372ms)
+ GET /app 200 in 985ms (compile: 26ms, proxy.ts: 687ms, render: 272ms)
+ GET / 200 in 899ms (compile: 8ms, proxy.ts: 811ms, render: 80ms)
+ GET /app 200 in 1136ms (compile: 10ms, proxy.ts: 880ms, render: 246ms)
+ GET / 200 in 1275ms (compile: 36ms, proxy.ts: 1129ms, render: 110ms)
+ GET /login 200 in 1588ms (compile: 469ms, proxy.ts: 732ms, render: 388ms)
+ GET / 200 in 2.9s (compile: 297ms, proxy.ts: 1928ms, render: 650ms)
+ GET /app 200 in 2.3s (compile: 244ms, proxy.ts: 1578ms, render: 428ms)
+ GET /login 200 in 1460ms (compile: 109ms, proxy.ts: 762ms, render: 589ms)
+ GET / 200 in 1309ms (compile: 169ms, proxy.ts: 1043ms, render: 97ms)
+ GET /login 200 in 2.0s (compile: 228ms, proxy.ts: 431ms, render: 1344ms)
+ GET / 200 in 1151ms (compile: 185ms, proxy.ts: 703ms, render: 264ms)
+ GET /login 200 in 1066ms (compile: 140ms, proxy.ts: 732ms, render: 194ms)
+ GET /login 200 in 1242ms (compile: 13ms, proxy.ts: 476ms, render: 753ms)
+ GET /login 307 in 3.2s (compile: 21ms, proxy.ts: 527ms, render: 2.7s)
+ GET /app 307 in 2.1s (compile: 14ms, proxy.ts: 572ms, render: 1484ms)
+ GET /login 307 in 2.9s (compile: 40ms, proxy.ts: 798ms, render: 2.1s)
+ GET /login 200 in 1587ms (compile: 17ms, proxy.ts: 437ms, render: 1133ms)
+ GET /app 307 in 4.1s (compile: 19ms, proxy.ts: 799ms, render: 3.3s)
+ GET /app 200 in 4.0s (compile: 831ms, proxy.ts: 1178ms, render: 2.0s)
+ GET /app 200 in 2.3s (compile: 17ms, proxy.ts: 845ms, render: 1441ms)
+○ Compiling /app/settings ...
+ GET /app/settings 200 in 5.7s (compile: 3.9s, proxy.ts: 369ms, render: 1425ms)
+ GET /app 200 in 3.0s (compile: 19ms, proxy.ts: 849ms, render: 2.1s)
+ GET /app 200 in 2.3s (compile: 48ms, proxy.ts: 333ms, render: 1901ms)
+ GET / 200 in 1498ms (compile: 24ms, proxy.ts: 992ms, render: 483ms)
+✓ Compiled in 122ms
+✓ Compiled in 410ms
+✓ Compiled in 485ms
+ GET /app 200 in 1205ms (compile: 21ms, proxy.ts: 848ms, render: 336ms)
+ GET /app 200 in 3.0s (compile: 17ms, proxy.ts: 368ms, render: 2.6s)
+ GET /app 200 in 2.4s (compile: 288ms, proxy.ts: 1575ms, render: 537ms)
+ GET / 200 in 4.3s (compile: 583ms, proxy.ts: 1847ms, render: 1828ms)
+ GET / 200 in 896ms (compile: 52ms, proxy.ts: 648ms, render: 196ms)
+ GET /app 200 in 678ms (compile: 17ms, proxy.ts: 375ms, render: 286ms)
+ GET /app 200 in 6.4s (compile: 818ms, proxy.ts: 1766ms, render: 3.8s)
+✓ Compiled in 431ms
+ GET / 200 in 682ms (compile: 84ms, proxy.ts: 455ms, render: 143ms)
+ GET / 200 in 582ms (compile: 40ms, proxy.ts: 434ms, render: 108ms)
+ GET /app 200 in 1171ms (compile: 19ms, proxy.ts: 711ms, render: 441ms)
+ GET /app 200 in 528ms (compile: 13ms, proxy.ts: 327ms, render: 188ms)
+ GET /app 200 in 2.8s (compile: 29ms, proxy.ts: 2.4s, render: 383ms)
+ GET /app 200 in 735ms (compile: 26ms, proxy.ts: 314ms, render: 395ms)
+✓ Compiled in 169ms
+✓ Compiled in 407ms
+ GET / 200 in 1960ms (compile: 1096ms, proxy.ts: 733ms, render: 131ms)
+ GET /app 200 in 3.1s (compile: 655ms, proxy.ts: 1950ms, render: 494ms)
+ GET / 200 in 3.1s (compile: 500ms, proxy.ts: 633ms, render: 1975ms)
+ GET /app 200 in 3.3s (compile: 216ms, proxy.ts: 1924ms, render: 1154ms)
+ GET /app 200 in 4.1s (compile: 86ms, proxy.ts: 1816ms, render: 2.2s)
+✓ Compiled in 237ms
+ GET / 200 in 733ms (compile: 323ms, proxy.ts: 17ms, render: 393ms)
+✓ Compiled in 210ms
+✓ Compiled in 101ms
+✓ Compiled in 166ms
+✓ Compiled in 396ms
+✓ Compiled in 447ms
+ GET /app 200 in 3.1s (compile: 28ms, proxy.ts: 327ms, render: 2.7s)
+ GET /admin 404 in 3.5s (compile: 2.2s, proxy.ts: 930ms, render: 423ms)
+ GET /admin 404 in 565ms (compile: 50ms, proxy.ts: 370ms, render: 145ms)
+ GET / 200 in 1527ms (compile: 639ms, proxy.ts: 395ms, render: 493ms)
+✓ Compiled in 804ms
+ GET / 200 in 3.0s (compile: 600ms, proxy.ts: 2.1s, render: 312ms)
+ GET / 200 in 2.9s (compile: 582ms, proxy.ts: 1901ms, render: 396ms)
+✓ Compiled in 112ms
+ GET /app 200 in 6.2s (compile: 12ms, proxy.ts: 2.3s, render: 3.9s)
+ GET /app 200 in 2.7s (compile: 10ms, proxy.ts: 1801ms, render: 843ms)
+ GET /app 200 in 3.9s (compile: 11ms, proxy.ts: 886ms, render: 3.0s)
+ GET / 200 in 1949ms (compile: 243ms, proxy.ts: 1585ms, render: 120ms)
+ GET /app 200 in 1169ms (compile: 18ms, proxy.ts: 869ms, render: 282ms)
+ GET / 200 in 897ms (compile: 21ms, proxy.ts: 727ms, render: 148ms)
+ GET /app 200 in 973ms (compile: 16ms, proxy.ts: 620ms, render: 337ms)
+ GET / 200 in 1328ms (compile: 18ms, proxy.ts: 1166ms, render: 144ms)
+ GET /app 200 in 1176ms (compile: 11ms, proxy.ts: 885ms, render: 280ms)
+ GET / 200 in 1138ms (compile: 18ms, proxy.ts: 1004ms, render: 116ms)
+ GET /app 200 in 1617ms (compile: 24ms, proxy.ts: 1298ms, render: 296ms)
+ GET / 200 in 1341ms (compile: 10ms, proxy.ts: 1220ms, render: 110ms)
+ GET /app 200 in 1156ms (compile: 18ms, proxy.ts: 827ms, render: 312ms)
+ GET / 200 in 1083ms (compile: 11ms, proxy.ts: 987ms, render: 86ms)
+ GET /app 200 in 1025ms (compile: 12ms, proxy.ts: 860ms, render: 154ms)
+ GET / 200 in 938ms (compile: 12ms, proxy.ts: 834ms, render: 92ms)
+ GET /app 200 in 1221ms (compile: 17ms, proxy.ts: 955ms, render: 249ms)
+ GET / 200 in 1279ms (compile: 15ms, proxy.ts: 1159ms, render: 105ms)
+ GET /app 200 in 1030ms (compile: 20ms, proxy.ts: 725ms, render: 286ms)
+ GET / 200 in 1069ms (compile: 11ms, proxy.ts: 976ms, render: 82ms)
+ GET /app 200 in 1045ms (compile: 12ms, proxy.ts: 769ms, render: 264ms)
+ GET / 200 in 1038ms (compile: 8ms, proxy.ts: 926ms, render: 104ms)
+ GET /app 200 in 1337ms (compile: 30ms, proxy.ts: 1018ms, render: 290ms)
+ GET / 200 in 989ms (compile: 9ms, proxy.ts: 893ms, render: 87ms)
+ GET / 200 in 936ms (compile: 22ms, proxy.ts: 834ms, render: 80ms)
+ GET /app 200 in 1114ms (compile: 19ms, proxy.ts: 674ms, render: 421ms)
+ GET / 200 in 910ms (compile: 16ms, proxy.ts: 827ms, render: 67ms)
+ GET /app 200 in 1044ms (compile: 18ms, proxy.ts: 635ms, render: 391ms)
+ GET /app 200 in 1266ms (compile: 18ms, proxy.ts: 872ms, render: 377ms)
+ GET / 200 in 2.1s (compile: 16ms, proxy.ts: 1672ms, render: 371ms)
+ GET /app 200 in 988ms (compile: 18ms, proxy.ts: 654ms, render: 316ms)
+ GET / 200 in 783ms (compile: 25ms, proxy.ts: 642ms, render: 116ms)
+ GET /app 200 in 1016ms (compile: 16ms, proxy.ts: 715ms, render: 284ms)
+ GET / 200 in 1206ms (compile: 25ms, proxy.ts: 1088ms, render: 92ms)
+ GET / 200 in 1989ms (compile: 18ms, proxy.ts: 792ms, render: 1178ms)
+ GET /app 200 in 2.2s (compile: 860ms, proxy.ts: 895ms, render: 406ms)
+ GET /login 200 in 2.2s (compile: 778ms, proxy.ts: 787ms, render: 598ms)
+ GET / 200 in 945ms (compile: 7ms, proxy.ts: 876ms, render: 62ms)
+ GET / 200 in 513ms (compile: 106ms, proxy.ts: 348ms, render: 60ms)
+ GET /login 200 in 799ms (compile: 80ms, proxy.ts: 514ms, render: 205ms)
+ GET / 200 in 888ms (compile: 163ms, proxy.ts: 637ms, render: 88ms)
+ GET /login 200 in 1922ms (compile: 205ms, proxy.ts: 507ms, render: 1210ms)
+ GET / 200 in 1044ms (compile: 139ms, proxy.ts: 779ms, render: 126ms)
+ GET /login 200 in 1059ms (compile: 143ms, proxy.ts: 698ms, render: 218ms)
+ GET / 200 in 1242ms (compile: 91ms, proxy.ts: 511ms, render: 639ms)
+ GET /app 200 in 2.7s (compile: 10ms, proxy.ts: 1656ms, render: 1046ms)
+ GET /login 307 in 2.4s (compile: 61ms, proxy.ts: 589ms, render: 1749ms)
+ GET /login 200 in 1377ms (compile: 327ms, proxy.ts: 671ms, render: 379ms)
+ GET /login 200 in 686ms (compile: 124ms, proxy.ts: 443ms, render: 119ms)
+ GET /app 200 in 2.3s (compile: 9ms, proxy.ts: 871ms, render: 1412ms)
+ GET /login 200 in 1774ms (compile: 60ms, proxy.ts: 568ms, render: 1146ms)
+ GET /login 200 in 678ms (compile: 62ms, proxy.ts: 480ms, render: 136ms)
+ GET /app 200 in 1345ms (compile: 9ms, proxy.ts: 904ms, render: 431ms)
+ GET /login 200 in 1197ms (compile: 25ms, proxy.ts: 495ms, render: 677ms)
+ GET /login 200 in 1762ms (compile: 49ms, proxy.ts: 612ms, render: 1101ms)
