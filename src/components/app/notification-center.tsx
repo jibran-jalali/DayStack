@@ -53,6 +53,7 @@ export function NotificationCenter({ onNotice, onTaskAccepted, userId }: Notific
   const [isOpen, setIsOpen] = useState(false);
   const [activeNotificationId, setActiveNotificationId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const unreadIds = useMemo(
     () => notifications.filter((notification) => !notification.readAt).map((notification) => notification.id),
@@ -61,8 +62,6 @@ export function NotificationCenter({ onNotice, onTaskAccepted, userId }: Notific
   const unreadCount = unreadIds.length;
 
   const loadNotifications = useCallback(async (options?: { silent?: boolean }) => {
-    const supabase = createSupabaseBrowserClient();
-
     if (!supabase) {
       setNotifications([]);
       setLoadError("Add your Supabase environment variables to load notifications.");
@@ -78,7 +77,7 @@ export function NotificationCenter({ onNotice, onTaskAccepted, userId }: Notific
         setLoadError(getErrorMessage(error));
       }
     }
-  }, [userId]);
+  }, [supabase, userId]);
 
   useEffect(() => {
     void loadNotifications();
@@ -93,6 +92,32 @@ export function NotificationCenter({ onNotice, onTaskAccepted, userId }: Notific
 
     return () => window.clearInterval(intervalId);
   }, [loadNotifications]);
+
+  useEffect(() => {
+    if (!supabase) {
+      return;
+    }
+
+    const channel = supabase
+      .channel(`task-notifications-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "task_notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          void loadNotifications({ silent: true });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [loadNotifications, supabase, userId]);
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
@@ -125,8 +150,6 @@ export function NotificationCenter({ onNotice, onTaskAccepted, userId }: Notific
       return;
     }
 
-    const supabase = createSupabaseBrowserClient();
-
     if (!supabase) {
       return;
     }
@@ -148,11 +171,9 @@ export function NotificationCenter({ onNotice, onTaskAccepted, userId }: Notific
         return;
       }
     });
-  }, [isOpen, unreadIds]);
+  }, [isOpen, supabase, unreadIds]);
 
   async function handleAccept(notificationId: string) {
-    const supabase = createSupabaseBrowserClient();
-
     if (!supabase) {
       onNotice?.({
         type: "error",

@@ -144,11 +144,6 @@ async function replaceTaskParticipants(
   }
 }
 
-async function fetchParticipantIdsForTask(client: DayStackClient, taskId: string): Promise<string[]> {
-  const rows = await fetchTaskParticipantsForTasks(client, [taskId]);
-  return [...new Set(rows.map((participant) => participant.participant_id))];
-}
-
 async function fetchTaskRowsForDate(
   client: DayStackClient,
   userId: string,
@@ -307,7 +302,7 @@ export async function createTask(
 
   await replaceTaskParticipants(client, createdTask.id, participantIds);
   await Promise.all([
-    syncTaskMentionNotifications(client, userId, createdTask, participantIds),
+    syncTaskMentionNotifications(createdTask.id),
     syncTaskRemindersForTask(client, userId, createdTask),
     syncDailySummaryForDate(client, userId, values.taskDate),
   ]);
@@ -356,7 +351,7 @@ export async function updateTask(
 
   await replaceTaskParticipants(client, taskId, participantIds);
   await Promise.all([
-    syncTaskMentionNotifications(client, userId, updatedTask, participantIds),
+    syncTaskMentionNotifications(updatedTask.id),
     syncTaskRemindersForTask(client, userId, updatedTask),
   ]);
 
@@ -378,15 +373,12 @@ export async function rescheduleTask(
   taskId: string,
   values: Pick<TaskFormValues, "endTime" | "startTime" | "taskDate">,
 ): Promise<TaskRecord> {
-  const [{ data: existingTask, error: existingTaskError }, participantIds] = await Promise.all([
-    client
-      .from("tasks")
-      .select("task_date")
-      .eq("id", taskId)
-      .eq("user_id", userId)
-      .single(),
-    fetchParticipantIdsForTask(client, taskId),
-  ]);
+  const { data: existingTask, error: existingTaskError } = await client
+    .from("tasks")
+    .select("task_date")
+    .eq("id", taskId)
+    .eq("user_id", userId)
+    .single();
 
   if (existingTaskError) {
     throw existingTaskError;
@@ -411,7 +403,7 @@ export async function rescheduleTask(
   const rescheduledTask = data as TaskRecord;
 
   await Promise.all([
-    syncTaskMentionNotifications(client, userId, rescheduledTask, participantIds),
+    syncTaskMentionNotifications(rescheduledTask.id),
     syncTaskRemindersForTask(client, userId, rescheduledTask),
   ]);
 
