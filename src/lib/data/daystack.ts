@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { expireTaskMentionNotifications, syncTaskMentionNotifications } from "@/lib/data/notifications";
 import { syncTaskRemindersForTask } from "@/lib/data/reminders";
 import { buildSummary, calculateActiveStreak, deriveDisplayName } from "@/lib/daystack";
 import type { Database } from "@/types/database";
@@ -19,7 +20,7 @@ type DayStackClient = SupabaseClient<Database>;
 function createSummaryPayload(
   userId: string,
   taskDate: string,
-  tasks: Array<Pick<TaskRecord, "status">>,
+  tasks: Array<Pick<TaskRecord, "status" | "task_type">>,
 ) {
   const summary = buildSummary(tasks);
 
@@ -141,6 +142,11 @@ async function replaceTaskParticipants(
   if (insertError) {
     throw insertError;
   }
+}
+
+async function fetchParticipantIdsForTask(client: DayStackClient, taskId: string): Promise<string[]> {
+  const rows = await fetchTaskParticipantsForTasks(client, [taskId]);
+  return [...new Set(rows.map((participant) => participant.participant_id))];
 }
 
 async function fetchTaskRowsForDate(
@@ -297,14 +303,14 @@ export async function createTask(
   }
 
   const createdTask = data as TaskRecord;
+  const participantIds = values.taskType === "meeting" ? values.participants.map((participant) => participant.id) : [];
 
-  await replaceTaskParticipants(
-    client,
-    createdTask.id,
-    values.taskType === "meeting" ? values.participants.map((participant) => participant.id) : [],
-  );
-  await syncTaskRemindersForTask(client, userId, createdTask);
-  await syncDailySummaryForDate(client, userId, values.taskDate);
+  await replaceTaskParticipants(client, createdTask.id, participantIds);
+  await Promise.all([
+    syncTaskMentionNotifications(client, userId, createdTask, participantIds),
+    syncTaskRemindersForTask(client, userId, createdTask),
+    syncDailySummaryForDate(client, userId, values.taskDate),
+  ]);
 
   return createdTask;
 }
@@ -346,13 +352,13 @@ export async function updateTask(
   }
 
   const updatedTask = data as TaskRecord;
+  const participantIds = values.taskType === "meeting" ? values.participants.map((participant) => participant.id) : [];
 
-  await replaceTaskParticipants(
-    client,
-    taskId,
-    values.taskType === "meeting" ? values.participants.map((participant) => participant.id) : [],
-  );
-  await syncTaskRemindersForTask(client, userId, updatedTask);
+  await replaceTaskParticipants(client, taskId, participantIds);
+  await Promise.all([
+    syncTaskMentionNotifications(client, userId, updatedTask, participantIds),
+    syncTaskRemindersForTask(client, userId, updatedTask),
+  ]);
 
   if (existingTask.task_date !== values.taskDate) {
     await Promise.all([
@@ -364,6 +370,61 @@ export async function updateTask(
   }
 
   return updatedTask;
+}
+
+export async function rescheduleTask(
+  client: DayStackClient,
+  userId: string,
+  taskId: string,
+  values: Pick<TaskFormValues, "endTime" | "startTime" | "taskDate">,
+): Promise<TaskRecord> {
+  const [{ data: existingTask, error: existingTaskError }, participantIds] = await Promise.all([
+    client
+      .from("tasks")
+      .select("task_date")
+      .eq("id", taskId)
+      .eq("user_id", userId)
+      .single(),
+    fetchParticipantIdsForTask(client, taskId),
+  ]);
+
+  if (existingTaskError) {
+    throw existingTaskError;
+  }
+
+  const { data, error } = await client
+    .from("tasks")
+    .update({
+      end_time: values.endTime,
+      start_time: values.startTime,
+      task_date: values.taskDate,
+    })
+    .eq("id", taskId)
+    .eq("user_id", userId)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  const rescheduledTask = data as TaskRecord;
+
+  await Promise.all([
+    syncTaskMentionNotifications(client, userId, rescheduledTask, participantIds),
+    syncTaskRemindersForTask(client, userId, rescheduledTask),
+  ]);
+
+  if (existingTask.task_date !== values.taskDate) {
+    await Promise.all([
+      syncDailySummaryForDate(client, userId, existingTask.task_date),
+      syncDailySummaryForDate(client, userId, values.taskDate),
+    ]);
+  } else {
+    await syncDailySummaryForDate(client, userId, values.taskDate);
+  }
+
+  return rescheduledTask;
 }
 
 export async function deleteTask(client: DayStackClient, userId: string, taskId: string): Promise<string> {
@@ -381,7 +442,10 @@ export async function deleteTask(client: DayStackClient, userId: string, taskId:
 
   const deletedTask = data as { task_date: string };
 
-  await syncDailySummaryForDate(client, userId, deletedTask.task_date);
+  await Promise.all([
+    expireTaskMentionNotifications(client, userId, taskId),
+    syncDailySummaryForDate(client, userId, deletedTask.task_date),
+  ]);
 
   return deletedTask.task_date;
 }

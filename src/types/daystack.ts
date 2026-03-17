@@ -9,11 +9,14 @@ export type TaskParticipantRecord = Database["public"]["Tables"]["task_participa
 export type UserNotificationPreferencesRecord =
   Database["public"]["Tables"]["user_notification_preferences"]["Row"];
 export type TaskReminderRecord = Database["public"]["Tables"]["task_reminders"]["Row"];
+export type TaskNotificationRecord = Database["public"]["Tables"]["task_notifications"]["Row"];
 export type TaskType = TaskRecord["task_type"];
 export type ReminderType = TaskReminderRecord["reminder_type"];
 export type ReminderStatus = TaskReminderRecord["status"];
+export type TaskNotificationStatus = TaskNotificationRecord["status"];
 
 export interface ParticipantProfile {
+  email?: string | null;
   id: string;
   fullName: string;
 }
@@ -30,6 +33,31 @@ export type NotificationPlatform = "android" | "desktop" | "ios" | "unknown";
 
 export interface PlannerTask extends TaskRecord {
   participants: ParticipantProfile[];
+}
+
+export interface PlannerNotification {
+  acceptedTaskDate: string | null;
+  acceptedTaskId: string | null;
+  actor: ParticipantProfile | null;
+  actorId: string;
+  createdAt: string;
+  id: string;
+  meetingLink: string | null;
+  notificationType: TaskNotificationRecord["notification_type"];
+  readAt: string | null;
+  startTime: string;
+  endTime: string;
+  status: TaskNotificationStatus;
+  taskDate: string;
+  taskId: string;
+  taskTitle: string;
+  taskType: TaskType;
+}
+
+export interface TaskNotificationAcceptResult {
+  acceptedTaskId: string | null;
+  outcome: "accepted" | "already_accepted" | "task_missing";
+  taskDate: string;
 }
 
 export interface OneSignalSubscriptionState {
@@ -82,7 +110,7 @@ export const taskFormSchema = z
     taskDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use a valid date."),
     startTime: z.string().regex(/^\d{2}:\d{2}$/, "Use a valid start time."),
     endTime: z.string().regex(/^\d{2}:\d{2}$/, "Use a valid end time."),
-    taskType: z.enum(["generic", "meeting"]),
+    taskType: z.enum(["generic", "meeting", "blocked"]),
     meetingLink: z
       .string()
       .trim()

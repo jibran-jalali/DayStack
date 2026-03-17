@@ -148,6 +148,8 @@ export function SettingsShell({
           plannerHref={plannerHref}
           settingsHref={settingsHref}
           subtitle="Manage how DayStack nudges the plan."
+          userId={userId}
+          onNotice={setNotice}
           onSignOutError={(message) =>
             setNotice({
               type: "error",

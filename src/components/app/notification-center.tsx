@@ -1,0 +1,316 @@
+"use client";
+
+import Link from "next/link";
+import { Bell, BellRing, Check, CheckCheck, ExternalLink, LoaderCircle } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+
+import { Button, buttonVariants } from "@/components/shared/button";
+import { StatusChip } from "@/components/shared/status-chip";
+import { acceptTaskNotification, fetchTaskNotifications, markTaskNotificationsRead } from "@/lib/data/notifications";
+import { formatClockTime, formatDateKey, formatDateLabel } from "@/lib/daystack";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { cn, getErrorMessage } from "@/lib/utils";
+import type { PlannerNotification, TaskNotificationAcceptResult } from "@/types/daystack";
+
+interface NotificationCenterProps {
+  onNotice?: (notice: { message: string; type: "error" | "success" }) => void;
+  onTaskAccepted?: (result: TaskNotificationAcceptResult) => Promise<void> | void;
+  userId: string;
+}
+
+function getStatusTone(status: PlannerNotification["status"]) {
+  if (status === "accepted") {
+    return "success" as const;
+  }
+
+  if (status === "pending") {
+    return "brand" as const;
+  }
+
+  return "default" as const;
+}
+
+function getStatusLabel(status: PlannerNotification["status"]) {
+  if (status === "accepted") {
+    return "Added";
+  }
+
+  if (status === "expired") {
+    return "Expired";
+  }
+
+  if (status === "dismissed") {
+    return "Dismissed";
+  }
+
+  return "Pending";
+}
+
+export function NotificationCenter({ onNotice, onTaskAccepted, userId }: NotificationCenterProps) {
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [notifications, setNotifications] = useState<PlannerNotification[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeNotificationId, setActiveNotificationId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  const unreadIds = useMemo(
+    () => notifications.filter((notification) => !notification.readAt).map((notification) => notification.id),
+    [notifications],
+  );
+  const unreadCount = unreadIds.length;
+
+  const loadNotifications = useCallback(async (options?: { silent?: boolean }) => {
+    const supabase = createSupabaseBrowserClient();
+
+    if (!supabase) {
+      setNotifications([]);
+      setLoadError("Add your Supabase environment variables to load notifications.");
+      return;
+    }
+
+    try {
+      const nextNotifications = await fetchTaskNotifications(supabase, userId);
+      setNotifications(nextNotifications);
+      setLoadError(null);
+    } catch (error) {
+      if (!options?.silent) {
+        setLoadError(getErrorMessage(error));
+      }
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    void loadNotifications();
+  }, [loadNotifications]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void loadNotifications({ silent: true });
+      }
+    }, 30_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadNotifications]);
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      if (!panelRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
+
+    if (!isOpen) {
+      return;
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || unreadIds.length === 0) {
+      return;
+    }
+
+    const supabase = createSupabaseBrowserClient();
+
+    if (!supabase) {
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        await markTaskNotificationsRead(supabase, unreadIds);
+        setNotifications((current) =>
+          current.map((notification) =>
+            unreadIds.includes(notification.id)
+              ? {
+                  ...notification,
+                  readAt: notification.readAt ?? new Date().toISOString(),
+                }
+              : notification,
+          ),
+        );
+      } catch {
+        return;
+      }
+    });
+  }, [isOpen, unreadIds]);
+
+  async function handleAccept(notificationId: string) {
+    const supabase = createSupabaseBrowserClient();
+
+    if (!supabase) {
+      onNotice?.({
+        type: "error",
+        message: "Add your Supabase environment variables before accepting task mentions.",
+      });
+      return;
+    }
+
+    setActiveNotificationId(notificationId);
+
+    try {
+      const result = await acceptTaskNotification(supabase, userId, notificationId);
+      await onTaskAccepted?.(result);
+      await loadNotifications();
+
+      if (result.outcome === "accepted") {
+        onNotice?.({
+          type: "success",
+          message: "The task was added to your timeline.",
+        });
+        return;
+      }
+
+      if (result.outcome === "already_accepted") {
+        onNotice?.({
+          type: "success",
+          message: "That task is already in your timeline.",
+        });
+        return;
+      }
+
+      onNotice?.({
+        type: "error",
+        message: "That task was deleted before you accepted it.",
+      });
+    } catch (error) {
+      onNotice?.({
+        type: "error",
+        message: getErrorMessage(error),
+      });
+    } finally {
+      setActiveNotificationId(null);
+    }
+  }
+
+  return (
+    <div ref={panelRef} className="relative">
+      <Button
+        size="sm"
+        variant="secondary"
+        className="relative h-10 w-10 rounded-full px-0"
+        onClick={() => {
+          setIsOpen((current) => !current);
+
+          if (!isOpen) {
+            void loadNotifications({ silent: true });
+          }
+        }}
+        aria-expanded={isOpen}
+        aria-label="Open notifications"
+      >
+        {unreadCount > 0 ? <BellRing className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+        {unreadCount > 0 ? (
+          <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand-gradient px-1.5 text-[10px] font-semibold text-white shadow-[0_8px_18px_rgba(23,102,214,0.24)]">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        ) : null}
+      </Button>
+
+      <div
+        className={cn(
+          "absolute right-0 top-[calc(100%+0.75rem)] z-40 w-[min(26rem,calc(100vw-2rem))] rounded-[24px] border border-white/75 bg-white/96 p-3 shadow-[0_28px_72px_rgba(15,23,42,0.16)] backdrop-blur-xl transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          isOpen ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0",
+        )}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-border/70 px-1 pb-3">
+          <div>
+            <p className="section-label">Notifications</p>
+            <p className="mt-1 text-sm text-secondary-foreground">
+              {notifications.length > 0 ? `${notifications.length} recent updates` : "No recent mentions yet."}
+            </p>
+          </div>
+          {unreadCount > 0 ? <StatusChip label={`${unreadCount} unread`} tone="brand" /> : null}
+        </div>
+
+        {loadError ? (
+          <div className="px-1 py-4 text-sm text-danger">{loadError}</div>
+        ) : notifications.length === 0 ? (
+          <div className="px-1 py-4 text-sm text-secondary-foreground">
+            Mention notifications will show up here when someone tags you in a meeting block.
+          </div>
+        ) : (
+          <div className="mt-3 max-h-[24rem] space-y-2 overflow-y-auto pr-1 soft-scrollbar">
+            {notifications.map((notification) => {
+              const actorName = notification.actor?.fullName ?? "A DayStack user";
+              const isPendingAction = activeNotificationId === notification.id;
+
+              return (
+                <section
+                  key={notification.id}
+                  className={cn(
+                    "rounded-[20px] border px-3.5 py-3 transition-[border-color,box-shadow,background-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                    notification.readAt ? "border-border/70 bg-white/82" : "border-cyan-200 bg-cyan-50/56",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">{actorName} mentioned you</p>
+                      <p className="mt-1 text-sm leading-6 text-secondary-foreground">
+                        In <span className="font-medium text-foreground">{notification.taskTitle}</span>
+                      </p>
+                    </div>
+                    <StatusChip label={getStatusLabel(notification.status)} tone={getStatusTone(notification.status)} />
+                  </div>
+
+                  <p className="mt-2 text-xs text-secondary-foreground">
+                    {formatDateLabel(notification.taskDate)} at {formatClockTime(notification.startTime)} to{" "}
+                    {formatClockTime(notification.endTime)}
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {notification.status === "pending" ? (
+                      <Button size="sm" onClick={() => handleAccept(notification.id)} disabled={isPendingAction}>
+                        {isPendingAction ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                        Accept
+                      </Button>
+                    ) : notification.acceptedTaskDate ? (
+                      <Link
+                        href={
+                          notification.acceptedTaskDate === formatDateKey(new Date())
+                            ? "/app"
+                            : `/app?date=${notification.acceptedTaskDate}`
+                        }
+                        className={buttonVariants({ variant: "secondary", size: "sm" })}
+                      >
+                        <CheckCheck className="h-4 w-4" />
+                        Open day
+                      </Link>
+                    ) : null}
+
+                    {notification.meetingLink ? (
+                      <a
+                        href={notification.meetingLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={buttonVariants({ variant: "ghost", size: "sm", className: "h-10 px-4" })}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Meeting link
+                      </a>
+                    ) : null}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -5,6 +5,7 @@ import type {
   PlannerDateMode,
   PlannerTask,
   TaskRecord,
+  TaskType,
   TaskVisualState,
   TaskWindowState,
   TimelineTaskLayout,
@@ -61,6 +62,22 @@ export function addMinutesToTime(time: string, increment = 60) {
   return `${`${hours}`.padStart(2, "0")}:${`${minutes}`.padStart(2, "0")}`;
 }
 
+export function minutesToTime(value: number) {
+  const clamped = Math.min(Math.max(value, 0), 23 * 60 + 59);
+  const hours = Math.floor(clamped / 60);
+  const minutes = clamped % 60;
+
+  return `${`${hours}`.padStart(2, "0")}:${`${minutes}`.padStart(2, "0")}`;
+}
+
+export function floorMinutesToInterval(value: number, interval: number) {
+  return Math.floor(value / interval) * interval;
+}
+
+export function ceilMinutesToInterval(value: number, interval: number) {
+  return Math.ceil(value / interval) * interval;
+}
+
 export function formatClockTime(time: string) {
   const [hours, minutes] = time.split(":").map(Number);
   const displayHours = hours % 12 || 12;
@@ -114,9 +131,30 @@ export function calculateExecutionScore(completedTasks: number, totalTasks: numb
   return Math.round((completedTasks / totalTasks) * 100);
 }
 
-export function buildSummary(tasks: Array<Pick<TaskRecord, "status">>): DashboardSummary {
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((task) => task.status === "completed").length;
+export function isBlockedTask(task: Pick<TaskRecord, "task_type">) {
+  return task.task_type === "blocked";
+}
+
+export function isActionableTask(task: Pick<TaskRecord, "task_type">) {
+  return !isBlockedTask(task);
+}
+
+export function getTaskTypeLabel(taskType: TaskType) {
+  if (taskType === "meeting") {
+    return "Meeting";
+  }
+
+  if (taskType === "blocked") {
+    return "Blocked";
+  }
+
+  return "Generic";
+}
+
+export function buildSummary(tasks: Array<Pick<TaskRecord, "status" | "task_type">>): DashboardSummary {
+  const actionableTasks = tasks.filter(isActionableTask);
+  const totalTasks = actionableTasks.length;
+  const completedTasks = actionableTasks.filter((task) => task.status === "completed").length;
   const incompleteTasks = totalTasks - completedTasks;
   const executionScore = calculateExecutionScore(completedTasks, totalTasks);
   const successfulDay = totalTasks > 0 && executionScore >= 70;
@@ -195,6 +233,10 @@ export function getTaskWindow(tasks: PlannerTask[], now: Date, taskDate: string)
   let nextTask: PlannerTask | null = null;
 
   for (const task of tasks) {
+    if (isBlockedTask(task)) {
+      continue;
+    }
+
     const startMinutes = toMinutes(task.start_time);
     const endMinutes = toMinutes(task.end_time);
 
@@ -269,6 +311,10 @@ export function getUpcomingTasks(tasks: PlannerTask[], now: Date, taskDate: stri
 
   return tasks
     .filter((task) => {
+      if (isBlockedTask(task)) {
+        return false;
+      }
+
       if (task.status === "completed") {
         return false;
       }

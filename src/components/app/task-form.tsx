@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarRange, Link2, Trash2, Users, Video } from "lucide-react";
+import { CalendarRange, Link2, MoonStar, Trash2, Users, Video } from "lucide-react";
 
 import { ParticipantPicker } from "@/components/app/participant-picker";
 import { Button } from "@/components/shared/button";
@@ -102,17 +102,25 @@ export function TaskForm({
 
       <div className="space-y-2">
         <span className="text-sm font-medium text-foreground">Type</span>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid gap-2 sm:grid-cols-3">
           {[
             {
               value: "generic",
               label: "Generic",
               icon: CalendarRange,
+              description: "Flexible task block",
             },
             {
               value: "meeting",
               label: "Meeting",
               icon: Video,
+              description: "Link and mentions",
+            },
+            {
+              value: "blocked",
+              label: "Blocked",
+              icon: MoonStar,
+              description: "Sleep, breaks, commute",
             },
           ].map((option) => {
             const Icon = option.icon;
@@ -140,9 +148,7 @@ export function TaskForm({
                 </span>
                 <span>
                   <span className="block text-sm font-semibold text-foreground">{option.label}</span>
-                  <span className="block text-xs text-secondary-foreground">
-                    {option.value === "generic" ? "Flexible task block" : "Link and participants"}
-                  </span>
+                  <span className="block text-xs text-secondary-foreground">{option.description}</span>
                 </span>
               </button>
             );
@@ -150,6 +156,12 @@ export function TaskForm({
         </div>
         {errors.taskType ? <p className="text-sm text-danger">{errors.taskType}</p> : null}
       </div>
+
+      {values.taskType === "blocked" ? (
+        <div className="rounded-[20px] border border-slate-200 bg-slate-100/82 px-4 py-3 text-sm text-slate-700">
+          Blocked time stays visible in the timeline but does not count toward the execution score.
+        </div>
+      ) : null}
 
       <div className="grid gap-4">
         <label className="space-y-2">
@@ -181,6 +193,7 @@ export function TaskForm({
             <Input
               type="time"
               value={values.startTime}
+              step={900}
               error={errors.startTime}
               onChange={(event) => setField("startTime", event.target.value)}
             />
@@ -192,6 +205,7 @@ export function TaskForm({
             <Input
               type="time"
               value={values.endTime}
+              step={900}
               error={errors.endTime}
               onChange={(event) => setField("endTime", event.target.value)}
             />
@@ -224,8 +238,11 @@ export function TaskForm({
               <div className="space-y-2">
                 <span className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
                   <Users className="h-4 w-4 text-secondary-foreground" />
-                  Tagged people
+                  Mention people
                 </span>
+                <p className="text-xs text-secondary-foreground">
+                  Mentioned people get a notification and can accept this task into their own timeline.
+                </p>
                 <ParticipantPicker
                   currentUserId={currentUserId}
                   value={values.participants}

@@ -85,8 +85,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             description={
               <>
                 Run the SQL in <code>supabase/schema.sql</code> inside your Supabase SQL editor. Settings need{" "}
-                <code>profiles</code>, <code>user_notification_preferences</code>, and <code>task_reminders</code> to
-                be available before reminders can be managed here.
+                <code>profiles</code>, <code>user_notification_preferences</code>, <code>task_reminders</code>, and{" "}
+                <code>task_notifications</code> to be available before reminders and mentions can be managed here.
               </>
             }
           />

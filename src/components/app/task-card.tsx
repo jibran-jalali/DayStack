@@ -1,7 +1,7 @@
 import { CalendarRange, CheckCircle2, PencilLine, Trash2, Users, Video } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/shared/button";
-import { formatClockTime, formatParticipantNames, getTaskAnchorId } from "@/lib/daystack";
+import { formatClockTime, formatParticipantNames, getTaskAnchorId, isBlockedTask } from "@/lib/daystack";
 import { cn } from "@/lib/utils";
 import type { PlannerTask, TaskVisualState } from "@/types/daystack";
 
@@ -31,25 +31,38 @@ const stateLabels: Record<TaskVisualState, string> = {
   overdue: "Overdue",
 };
 
+const blockedStateStyles: Record<TaskVisualState, string> = {
+  active: "border-slate-300 bg-slate-200/82 shadow-[0_12px_22px_rgba(71,85,105,0.08)]",
+  completed: "border-slate-300 bg-slate-100/86 shadow-[0_12px_22px_rgba(71,85,105,0.08)]",
+  upcoming: "border-slate-300 bg-slate-100/86 shadow-[0_12px_22px_rgba(71,85,105,0.08)]",
+  pending: "border-slate-300 bg-slate-100/92 shadow-[0_12px_22px_rgba(71,85,105,0.08)]",
+  overdue: "border-slate-400 bg-slate-200/92 shadow-[0_12px_22px_rgba(71,85,105,0.08)]",
+};
+
 export function TaskCard({ focusedTaskId, task, visualState, isPending, onEdit, onDelete, onToggle }: TaskCardProps) {
   const isMeeting = task.task_type === "meeting";
+  const isBlocked = isBlockedTask(task);
 
   return (
     <div
       id={getTaskAnchorId(task.id)}
       className={cn(
         "rounded-[20px] border px-3 py-3 transition-[transform,box-shadow,border-color,background-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 sm:px-4",
-        stateStyles[visualState],
+        isBlocked ? blockedStateStyles[visualState] : stateStyles[visualState],
         focusedTaskId === task.id && "ring-2 ring-primary/35 ring-offset-2 ring-offset-background",
       )}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="shrink-0 sm:w-36">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-secondary-foreground/70">
-            {stateLabels[visualState]}
+            {isBlocked ? "Blocked" : stateLabels[visualState]}
           </p>
           <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            {isMeeting ? <Video className="h-3.5 w-3.5 text-primary" /> : <CalendarRange className="h-3.5 w-3.5 text-secondary-foreground" />}
+            {isMeeting ? (
+              <Video className="h-3.5 w-3.5 text-primary" />
+            ) : (
+              <CalendarRange className={cn("h-3.5 w-3.5", isBlocked ? "text-slate-500" : "text-secondary-foreground")} />
+            )}
             {formatClockTime(task.start_time)} to {formatClockTime(task.end_time)}
           </p>
         </div>
@@ -66,6 +79,10 @@ export function TaskCard({ focusedTaskId, task, visualState, isPending, onEdit, 
               <span className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-cyan-50/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700">
                 <Video className="h-3 w-3" />
                 Meeting
+              </span>
+            ) : isBlocked ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-slate-200/82 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+                Blocked
               </span>
             ) : null}
           </div>
@@ -92,10 +109,12 @@ export function TaskCard({ focusedTaskId, task, visualState, isPending, onEdit, 
               Join
             </a>
           ) : null}
-          <Button size="sm" variant={task.status === "completed" ? "secondary" : "primary"} onClick={() => onToggle(task)} disabled={isPending}>
-            <CheckCircle2 className="h-4 w-4" />
-            {task.status === "completed" ? "Undo" : "Done"}
-          </Button>
+          {!isBlocked ? (
+            <Button size="sm" variant={task.status === "completed" ? "secondary" : "primary"} onClick={() => onToggle(task)} disabled={isPending}>
+              <CheckCircle2 className="h-4 w-4" />
+              {task.status === "completed" ? "Undo" : "Done"}
+            </Button>
+          ) : null}
           <Button
             size="sm"
             variant="secondary"

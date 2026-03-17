@@ -124,16 +124,96 @@ export type Database = {
           },
         ];
       };
+      task_notifications: {
+        Row: {
+          accepted_task_id: string | null;
+          actor_user_id: string;
+          created_at: string;
+          end_time: string;
+          id: string;
+          meeting_link: string | null;
+          notification_type: "task_mention";
+          read_at: string | null;
+          start_time: string;
+          status: "accepted" | "dismissed" | "expired" | "pending";
+          task_date: string;
+          task_id: string;
+          task_title: string;
+          task_type: "blocked" | "generic" | "meeting";
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          accepted_task_id?: string | null;
+          actor_user_id: string;
+          created_at?: string;
+          end_time: string;
+          id?: string;
+          meeting_link?: string | null;
+          notification_type?: "task_mention";
+          read_at?: string | null;
+          start_time: string;
+          status?: "accepted" | "dismissed" | "expired" | "pending";
+          task_date: string;
+          task_id: string;
+          task_title: string;
+          task_type: "blocked" | "generic" | "meeting";
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          accepted_task_id?: string | null;
+          actor_user_id?: string;
+          created_at?: string;
+          end_time?: string;
+          id?: string;
+          meeting_link?: string | null;
+          notification_type?: "task_mention";
+          read_at?: string | null;
+          start_time?: string;
+          status?: "accepted" | "dismissed" | "expired" | "pending";
+          task_date?: string;
+          task_id?: string;
+          task_title?: string;
+          task_type?: "blocked" | "generic" | "meeting";
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_notifications_accepted_task_id_fkey";
+            columns: ["accepted_task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_notifications_actor_user_id_fkey";
+            columns: ["actor_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_notifications_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       tasks: {
         Row: {
           created_at: string;
           end_time: string;
           id: string;
           meeting_link: string | null;
+          source_task_id: string | null;
           start_time: string;
           status: "pending" | "completed";
           task_date: string;
-          task_type: "generic" | "meeting";
+          task_type: "blocked" | "generic" | "meeting";
           title: string;
           updated_at: string;
           user_id: string;
@@ -143,10 +223,11 @@ export type Database = {
           end_time: string;
           id?: string;
           meeting_link?: string | null;
+          source_task_id?: string | null;
           start_time: string;
           status?: "pending" | "completed";
           task_date: string;
-          task_type?: "generic" | "meeting";
+          task_type?: "blocked" | "generic" | "meeting";
           title: string;
           updated_at?: string;
           user_id: string;
@@ -156,10 +237,11 @@ export type Database = {
           end_time?: string;
           id?: string;
           meeting_link?: string | null;
+          source_task_id?: string | null;
           start_time?: string;
           status?: "pending" | "completed";
           task_date?: string;
-          task_type?: "generic" | "meeting";
+          task_type?: "blocked" | "generic" | "meeting";
           title?: string;
           updated_at?: string;
           user_id?: string;
@@ -250,7 +332,33 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      admin_account_usage_snapshot: {
+        Args: {
+          p_user_ids: string[];
+        };
+        Returns: {
+          estimated_owned_records: number;
+          user_id: string;
+        }[];
+      };
+      accept_task_notification: {
+        Args: {
+          p_notification_id: string;
+        };
+        Returns: {
+          accepted_task_id: string | null;
+          outcome: string;
+          task_date: string;
+        }[];
+      };
+      mark_task_notifications_read: {
+        Args: {
+          p_notification_ids: string[];
+        };
+        Returns: number;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

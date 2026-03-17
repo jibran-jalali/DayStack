@@ -87,8 +87,8 @@ export default async function AppPage({ searchParams }: AppPageProps) {
               <>
                 Run the SQL in <code>supabase/schema.sql</code> inside your Supabase SQL editor. The dashboard
                 needs <code>profiles</code>, <code>tasks</code>, <code>task_participants</code>,{" "}
-                <code>daily_summaries</code>, <code>user_notification_preferences</code>, and{" "}
-                <code>task_reminders</code> before it can load live data.
+                <code>daily_summaries</code>, <code>user_notification_preferences</code>,{" "}
+                <code>task_reminders</code>, and <code>task_notifications</code> before it can load live data.
               </>
             }
           />

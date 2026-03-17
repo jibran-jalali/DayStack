@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { isUserDisabled } from "@/lib/auth-status";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (user) {
+    if (user && !isUserDisabled(user)) {
       redirect("/app");
     }
   }

@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { isUserDisabled } from "@/lib/auth-status";
 import { isSupabaseConfigured } from "@/lib/env";
 import { updateSession } from "@/lib/supabase/proxy";
 
@@ -26,7 +27,11 @@ export async function proxy(request: NextRequest) {
     return redirectWithCookies("/login", request, response);
   }
 
-  if ((pathname === "/login" || pathname === "/signup") && user) {
+  if (pathname.startsWith("/app") && isUserDisabled(user)) {
+    return redirectWithCookies("/login?disabled=1", request, response);
+  }
+
+  if ((pathname === "/login" || pathname === "/signup") && user && !isUserDisabled(user)) {
     return redirectWithCookies("/app", request, response);
   }
 

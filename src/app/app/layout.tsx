@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { NotificationBridge } from "@/components/app/notification-bridge";
+import { isUserDisabled } from "@/lib/auth-status";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
     if (!user) {
       redirect("/login");
+    }
+
+    if (isUserDisabled(user)) {
+      redirect("/login?disabled=1");
     }
 
     userId = user.id;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DateSwitcher } from "@/components/app/date-switcher";
 import { ExecutionLane } from "@/components/app/execution-lane";
@@ -10,9 +10,12 @@ import { TaskModal } from "@/components/app/task-modal";
 import { TimelineGrid } from "@/components/app/timeline-grid";
 import { TimelineList } from "@/components/app/timeline-list";
 import type { PlannerViewMode } from "@/components/app/view-toggle";
-import { createTask, deleteTask, fetchDashboardSnapshot, toggleTaskStatus, updateTask } from "@/lib/data/daystack";
+import { createTask, deleteTask, fetchDashboardSnapshot, rescheduleTask, toggleTaskStatus, updateTask } from "@/lib/data/daystack";
 import {
   addMinutesToTime,
+  buildSummary,
+  calculateActiveStreak,
+  ceilMinutesToInterval,
   formatDateKey,
   formatDateLabel,
   getPlannerDateMode,
@@ -21,11 +24,15 @@ import {
   getTaskVisualState,
   getTaskWindow,
   getUpcomingTasks,
+  isBlockedTask,
   isValidDateKey,
+  minutesToTime,
+  toMinutes,
 } from "@/lib/daystack";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { cn, getErrorMessage } from "@/lib/utils";
 import type {
+  DailySummaryRecord,
   DashboardSnapshot,
   PlannerTask,
   TaskFormValues,
@@ -47,18 +54,15 @@ type NoticeState =
     }
   | null;
 
+type BusyMode = "minor" | "navigation" | null;
+
 function roundTime(now: Date) {
   const next = new Date(now);
-  next.setMinutes(now.getMinutes() < 30 ? 30 : 0);
+  const roundedMinutes = ceilMinutesToInterval(now.getHours() * 60 + now.getMinutes(), 15);
 
-  if (now.getMinutes() >= 30) {
-    next.setHours(now.getHours() + 1);
-  }
+  next.setHours(Math.floor(roundedMinutes / 60), roundedMinutes % 60, 0, 0);
 
-  next.setSeconds(0);
-  next.setMilliseconds(0);
-
-  return `${`${next.getHours()}`.padStart(2, "0")}:${`${next.getMinutes()}`.padStart(2, "0")}`;
+  return minutesToTime(next.getHours() * 60 + next.getMinutes());
 }
 
 function getDefaultStartTime(taskDate: string, now: Date, startTimeOverride?: string) {
@@ -93,6 +97,62 @@ function getSettingsHref(taskDate: string, now: Date) {
   return taskDate === todayDate ? "/app/settings" : `/app/settings?date=${taskDate}`;
 }
 
+function sortTasksForPlanner(tasks: PlannerTask[]) {
+  return [...tasks].sort((left, right) => {
+    const byStart = toMinutes(left.start_time) - toMinutes(right.start_time);
+
+    if (byStart !== 0) {
+      return byStart;
+    }
+
+    const byEnd = toMinutes(left.end_time) - toMinutes(right.end_time);
+
+    if (byEnd !== 0) {
+      return byEnd;
+    }
+
+    return left.created_at.localeCompare(right.created_at);
+  });
+}
+
+function syncSnapshotWithTasks(
+  current: DashboardSnapshot,
+  userId: string,
+  nextTasks: PlannerTask[],
+): DashboardSnapshot {
+  const tasks = sortTasksForPlanner(nextTasks);
+  const summary = buildSummary(tasks);
+  const existingSummary = current.recentSummaries.find((item) => item.summary_date === current.taskDate);
+  const timestamp = new Date().toISOString();
+  const liveSummary = (existingSummary ?? {
+    id: `live-${current.taskDate}`,
+    user_id: userId,
+    summary_date: current.taskDate,
+    created_at: timestamp,
+    updated_at: timestamp,
+  }) as DailySummaryRecord;
+  const nextLiveSummary = {
+    ...liveSummary,
+    completed_tasks: summary.completedTasks,
+    execution_score: summary.executionScore,
+    successful_day: summary.successfulDay,
+    total_tasks: summary.totalTasks,
+    updated_at: timestamp,
+  } satisfies DailySummaryRecord;
+  const recentSummaries = [
+    nextLiveSummary,
+    ...current.recentSummaries.filter((item) => item.summary_date !== current.taskDate),
+  ] as DailySummaryRecord[];
+
+  return {
+    ...current,
+    recentSummaries,
+    streak: calculateActiveStreak(recentSummaries, current.taskDate),
+    summary,
+    tasks,
+  };
+}
+
 export function PlannerShell({
   displayName,
   email,
@@ -101,7 +161,7 @@ export function PlannerShell({
   initialSnapshot,
 }: PlannerShellProps) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
-  const [isPending, startTransition] = useTransition();
+  const [busyMode, setBusyMode] = useState<BusyMode>(null);
   const [notice, setNotice] = useState<NoticeState>(null);
   const [now, setNow] = useState(() => new Date());
   const [viewMode, setViewMode] = useState<PlannerViewMode>("grid");
@@ -110,6 +170,33 @@ export function PlannerShell({
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const [followToday, setFollowToday] = useState(() => initialSnapshot.taskDate === formatDateKey(new Date()));
   const [settingsHighlighted, setSettingsHighlighted] = useState(false);
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const isPending = busyMode !== null;
+  const isSurfaceRefreshing = busyMode === "navigation";
+
+  const getBrowserClient = useCallback(() => {
+    if (!supabase) {
+      setNotice({
+        type: "error",
+        message: "Add your Supabase environment variables to load live data.",
+      });
+      return null;
+    }
+
+    return supabase;
+  }, [supabase]);
+
+  function applyTasksToCurrentSnapshot(
+    nextTasks: PlannerTask[] | ((currentTasks: PlannerTask[]) => PlannerTask[]),
+  ) {
+    setSnapshot((current) =>
+      syncSnapshotWithTasks(
+        current,
+        userId,
+        typeof nextTasks === "function" ? nextTasks(current.tasks) : nextTasks,
+      ),
+    );
+  }
 
   function syncPlannerLocation(taskDate: string) {
     window.history.replaceState(window.history.state, "", getPlannerHref(taskDate, new Date()));
@@ -130,15 +217,17 @@ export function PlannerShell({
       return;
     }
 
-    const supabase = createSupabaseBrowserClient();
+    const client = getBrowserClient();
 
-    if (!supabase) {
+    if (!client) {
       return;
     }
 
-    startTransition(async () => {
+    setBusyMode("navigation");
+
+    void (async () => {
       try {
-        const nextSnapshot = await fetchDashboardSnapshot(supabase, userId, todayDate);
+        const nextSnapshot = await fetchDashboardSnapshot(client, userId, todayDate);
         setSnapshot(nextSnapshot);
         setFollowToday(true);
         syncPlannerLocation(todayDate);
@@ -147,9 +236,11 @@ export function PlannerShell({
           type: "error",
           message: getErrorMessage(error),
         });
+      } finally {
+        setBusyMode(null);
       }
-    });
-  }, [followToday, snapshot.taskDate, todayDate, userId]);
+    })();
+  }, [followToday, getBrowserClient, snapshot.taskDate, todayDate, userId]);
 
   useEffect(() => {
     if (notice?.type !== "success") {
@@ -176,50 +267,61 @@ export function PlannerShell({
   }, [settingsHighlighted]);
 
   async function handleSaveTask(values: TaskFormValues) {
-    const supabase = createSupabaseBrowserClient();
+    const client = getBrowserClient();
 
-    if (!supabase) {
-      setNotice({
-        type: "error",
-        message: "Add your Supabase environment variables before editing tasks.",
-      });
+    if (!client) {
       return;
     }
 
-    startTransition(async () => {
-      try {
-        const shouldHighlightSettings =
-          !editorTask &&
-          snapshot.tasks.length === 0 &&
-          !initialNotificationPreferences.push_enabled;
+    const shouldHighlightSettings =
+      !editorTask &&
+      snapshot.tasks.length === 0 &&
+      !initialNotificationPreferences.push_enabled;
+    const shouldRefreshSnapshot = values.taskDate !== snapshot.taskDate;
 
-        if (editorTask) {
-          await updateTask(supabase, userId, editorTask.id, values);
-        } else {
-          await createTask(supabase, userId, values);
-        }
+    setBusyMode(shouldRefreshSnapshot ? "navigation" : "minor");
 
-        const nextSnapshot = await fetchDashboardSnapshot(supabase, userId, values.taskDate);
+    try {
+      const savedTask = editorTask
+        ? await updateTask(client, userId, editorTask.id, values)
+        : await createTask(client, userId, values);
+
+      const nextPlannerTask: PlannerTask = {
+        ...savedTask,
+        participants: values.taskType === "meeting" ? values.participants : [],
+      };
+
+      if (shouldRefreshSnapshot) {
+        const nextSnapshot = await fetchDashboardSnapshot(client, userId, values.taskDate);
         setSnapshot(nextSnapshot);
-        setFollowToday(values.taskDate === formatDateKey(new Date()));
-        syncPlannerLocation(values.taskDate);
-        setEditorTask(null);
-        setComposerDefaults(null);
-        setNotice({
-          type: "success",
-          message: editorTask ? "Block updated." : "Block added.",
-        });
-
-        if (shouldHighlightSettings) {
-          setSettingsHighlighted(true);
-        }
-      } catch (error) {
-        setNotice({
-          type: "error",
-          message: getErrorMessage(error),
-        });
+      } else if (editorTask) {
+        applyTasksToCurrentSnapshot((currentTasks) =>
+          currentTasks.map((task) => (task.id === editorTask.id ? nextPlannerTask : task)),
+        );
+      } else {
+        applyTasksToCurrentSnapshot((currentTasks) => [...currentTasks, nextPlannerTask]);
       }
-    });
+
+      setFollowToday(values.taskDate === formatDateKey(new Date()));
+      syncPlannerLocation(values.taskDate);
+      setEditorTask(null);
+      setComposerDefaults(null);
+      setNotice({
+        type: "success",
+        message: editorTask ? "Block updated." : "Block added.",
+      });
+
+      if (shouldHighlightSettings) {
+        setSettingsHighlighted(true);
+      }
+    } catch (error) {
+      setNotice({
+        type: "error",
+        message: getErrorMessage(error),
+      });
+    } finally {
+      setBusyMode(null);
+    }
   }
 
   function handleEditTask(task: PlannerTask) {
@@ -244,13 +346,9 @@ export function PlannerShell({
       return;
     }
 
-    const supabase = createSupabaseBrowserClient();
+    const client = getBrowserClient();
 
-    if (!supabase) {
-      setNotice({
-        type: "error",
-        message: "Add your Supabase environment variables to load live data.",
-      });
+    if (!client) {
       return;
     }
 
@@ -259,9 +357,11 @@ export function PlannerShell({
     setFocusedTaskId(null);
     setNotice(null);
 
-    startTransition(async () => {
+    setBusyMode("navigation");
+
+    void (async () => {
       try {
-        const nextSnapshot = await fetchDashboardSnapshot(supabase, userId, nextDate);
+        const nextSnapshot = await fetchDashboardSnapshot(client, userId, nextDate);
         setSnapshot(nextSnapshot);
         setFollowToday(nextDate === formatDateKey(new Date()));
         syncPlannerLocation(nextDate);
@@ -270,8 +370,10 @@ export function PlannerShell({
           type: "error",
           message: getErrorMessage(error),
         });
+      } finally {
+        setBusyMode(null);
       }
-    });
+    })();
   }
 
   function handleDeleteTask(task: PlannerTask) {
@@ -281,21 +383,21 @@ export function PlannerShell({
       return;
     }
 
-    const supabase = createSupabaseBrowserClient();
+    const client = getBrowserClient();
 
-    if (!supabase) {
-      setNotice({
-        type: "error",
-        message: "Add your Supabase environment variables before editing tasks.",
-      });
+    if (!client) {
       return;
     }
 
-    startTransition(async () => {
+    const previousSnapshot = snapshot;
+    setBusyMode("minor");
+
+    void (async () => {
       try {
-        const taskDate = await deleteTask(supabase, userId, task.id);
-        const nextSnapshot = await fetchDashboardSnapshot(supabase, userId, taskDate);
-        setSnapshot(nextSnapshot);
+        const taskDate = await deleteTask(client, userId, task.id);
+        applyTasksToCurrentSnapshot((currentTasks) =>
+          currentTasks.filter((currentTask) => currentTask.id !== task.id),
+        );
         setFollowToday(taskDate === formatDateKey(new Date()));
         syncPlannerLocation(taskDate);
 
@@ -309,36 +411,42 @@ export function PlannerShell({
           message: "Block deleted.",
         });
       } catch (error) {
+        setSnapshot(previousSnapshot);
         setNotice({
           type: "error",
           message: getErrorMessage(error),
         });
+      } finally {
+        setBusyMode(null);
       }
-    });
+    })();
   }
 
   function handleToggleTask(task: PlannerTask) {
-    const supabase = createSupabaseBrowserClient();
+    const client = getBrowserClient();
 
-    if (!supabase) {
-      setNotice({
-        type: "error",
-        message: "Add your Supabase environment variables before editing tasks.",
-      });
+    if (!client) {
       return;
     }
 
-    startTransition(async () => {
-      try {
-        await toggleTaskStatus(
-          supabase,
-          userId,
-          task.id,
-          task.status === "completed" ? "pending" : "completed",
-        );
+    const previousSnapshot = snapshot;
+    const nextStatus = task.status === "completed" ? "pending" : "completed";
 
-        const nextSnapshot = await fetchDashboardSnapshot(supabase, userId, task.task_date);
-        setSnapshot(nextSnapshot);
+    applyTasksToCurrentSnapshot((currentTasks) =>
+      currentTasks.map((currentTask) =>
+        currentTask.id === task.id
+          ? {
+              ...currentTask,
+              status: nextStatus,
+            }
+          : currentTask,
+      ),
+    );
+    setBusyMode("minor");
+
+    void (async () => {
+      try {
+        await toggleTaskStatus(client, userId, task.id, nextStatus);
         setFollowToday(task.task_date === formatDateKey(new Date()));
         syncPlannerLocation(task.task_date);
         setNotice({
@@ -346,12 +454,94 @@ export function PlannerShell({
           message: task.status === "completed" ? "Block marked pending." : "Block marked complete.",
         });
       } catch (error) {
+        setSnapshot(previousSnapshot);
         setNotice({
           type: "error",
           message: getErrorMessage(error),
         });
+      } finally {
+        setBusyMode(null);
       }
-    });
+    })();
+  }
+
+  function handleNotificationNotice(nextNotice: NonNullable<NoticeState>) {
+    setNotice(nextNotice);
+  }
+
+  async function handleNotificationAccepted(result: { acceptedTaskId: string | null; taskDate: string }) {
+    if (result.taskDate !== snapshot.taskDate) {
+      return;
+    }
+
+    const client = getBrowserClient();
+
+    if (!client) {
+      return;
+    }
+
+    setBusyMode("minor");
+
+    try {
+      const nextSnapshot = await fetchDashboardSnapshot(client, userId, result.taskDate);
+      setSnapshot(nextSnapshot);
+      setFollowToday(result.taskDate === formatDateKey(new Date()));
+
+      if (result.acceptedTaskId) {
+        window.setTimeout(() => {
+          handleFocusTask(result.acceptedTaskId!);
+        }, 80);
+      }
+    } catch (error) {
+      setNotice({
+        type: "error",
+        message: getErrorMessage(error),
+      });
+    } finally {
+      setBusyMode(null);
+    }
+  }
+
+  function handleRescheduleTask(task: PlannerTask, nextStartTime: string, nextEndTime: string) {
+    const client = getBrowserClient();
+
+    if (!client) {
+      return;
+    }
+
+    const previousSnapshot = snapshot;
+    const optimisticTasks = sortTasksForPlanner(
+      snapshot.tasks.map((currentTask) =>
+        currentTask.id === task.id
+          ? {
+              ...currentTask,
+              end_time: nextEndTime,
+              start_time: nextStartTime,
+            }
+          : currentTask,
+      ),
+    );
+
+    applyTasksToCurrentSnapshot(optimisticTasks);
+    setBusyMode("minor");
+
+    void (async () => {
+      try {
+        await rescheduleTask(client, userId, task.id, {
+          endTime: nextEndTime,
+          startTime: nextStartTime,
+          taskDate: snapshot.taskDate,
+        });
+      } catch (error) {
+        setSnapshot(previousSnapshot);
+        setNotice({
+          type: "error",
+          message: getErrorMessage(error),
+        });
+      } finally {
+        setBusyMode(null);
+      }
+    })();
   }
 
   function handleFocusTask(taskId: string) {
@@ -388,6 +578,10 @@ export function PlannerShell({
     () => getRelativeDateLabel(snapshot.taskDate, now),
     [now, snapshot.taskDate],
   );
+  const blockedCount = useMemo(
+    () => snapshot.tasks.filter((task) => isBlockedTask(task)).length,
+    [snapshot.tasks],
+  );
   const plannerHref = useMemo(() => getPlannerHref(snapshot.taskDate, now), [now, snapshot.taskDate]);
   const settingsHref = useMemo(() => getSettingsHref(snapshot.taskDate, now), [now, snapshot.taskDate]);
   const headerMetric = useMemo<{
@@ -396,7 +590,12 @@ export function PlannerShell({
   }>(() => {
     if (dateMode === "future") {
       return {
-        label: snapshot.summary.totalTasks > 0 ? `${snapshot.summary.totalTasks} planned` : "Open day",
+        label:
+          snapshot.summary.totalTasks > 0
+            ? `${snapshot.summary.totalTasks} planned`
+            : blockedCount > 0
+              ? `${blockedCount} blocked`
+              : "Open day",
         tone: snapshot.summary.totalTasks > 0 ? "brand" : "default",
       };
     }
@@ -422,7 +621,7 @@ export function PlannerShell({
             ? "warning"
             : "default",
     };
-  }, [dateMode, snapshot.summary.executionScore, snapshot.summary.totalTasks]);
+  }, [blockedCount, dateMode, snapshot.summary.executionScore, snapshot.summary.totalTasks]);
   const isComposerOpen = editorTask !== null || composerDefaults !== null;
   const formValues = useMemo(
     () =>
@@ -462,8 +661,11 @@ export function PlannerShell({
                 ? "Review what this day looked like."
                 : "Plan and execute in one surface."
           }
+          userId={userId}
           viewMode={viewMode}
           onAddTask={() => handleCreateTask()}
+          onNotice={handleNotificationNotice}
+          onTaskAccepted={handleNotificationAccepted}
           onViewChange={setViewMode}
           onSignOutError={(message) =>
             setNotice({
@@ -490,11 +692,14 @@ export function PlannerShell({
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <section className="min-w-0 space-y-4">
-            <div className={cn("glass-panel relative p-4 sm:p-5", isPending && "opacity-90")} aria-busy={isPending}>
+            <div
+              className={cn("glass-panel relative p-4 sm:p-5", isSurfaceRefreshing && "opacity-90")}
+              aria-busy={isSurfaceRefreshing}
+            >
               <div
                 className={cn(
                   "pointer-events-none absolute inset-x-6 top-0 h-px bg-brand-gradient transition-opacity duration-150",
-                  isPending ? "opacity-100" : "opacity-0",
+                  isSurfaceRefreshing ? "opacity-100" : "opacity-0",
                 )}
               />
 
@@ -524,7 +729,7 @@ export function PlannerShell({
                 <DateSwitcher
                   dateLabel={dateLabel}
                   dateMode={dateMode}
-                  isPending={isPending}
+                  isPending={isSurfaceRefreshing}
                   onSelectDate={handleSelectDate}
                   selectedDate={snapshot.taskDate}
                   todayDate={todayDate}
@@ -542,6 +747,7 @@ export function PlannerShell({
                     isPending={isPending}
                     onAddTask={handleCreateTask}
                     onEditTask={handleEditTask}
+                    onRescheduleTask={handleRescheduleTask}
                     onToggleTask={handleToggleTask}
                   />
                 ) : (

@@ -64,6 +64,10 @@ Optional production env vars for automated dispatch:
 ```bash
 SUPABASE_SERVICE_ROLE_KEY=
 CRON_SECRET=
+ADMIN_USERNAME=
+ADMIN_PASSWORD=
+# Optional but recommended to rotate admin sessions independently:
+# ADMIN_SESSION_SECRET=
 ```
 
 ## Local setup
@@ -87,6 +91,7 @@ npm run dev
 ```
 
 6. Open `http://localhost:3000`.
+7. For the internal admin console, add `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `SUPABASE_SERVICE_ROLE_KEY`, then open `http://localhost:3000/admin`.
 
 ## Supabase setup
 
@@ -142,8 +147,9 @@ Production testing:
 3. Add the same `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` environment variables in Vercel.
 4. Add `NEXT_PUBLIC_ONESIGNAL_APP_ID` and `ONESIGNAL_REST_API_KEY`.
 5. If you want automated reminder dispatch, also add `SUPABASE_SERVICE_ROLE_KEY` and `CRON_SECRET`.
-6. Make sure the Supabase SQL schema has already been applied.
-7. Deploy.
+6. If you want the internal admin console, also add `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and optionally `ADMIN_SESSION_SECRET`.
+7. Make sure the Supabase SQL schema has already been applied.
+8. Deploy.
 
 ## Notes
 

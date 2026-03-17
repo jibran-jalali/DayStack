@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, CheckCircle2, Clock3, Sparkles, Target } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, CheckCircle2, Clock3, Sparkles, Target } from "lucide-react";
 
 import { AuthForm } from "@/components/auth/auth-form";
 import { buttonVariants } from "@/components/shared/button";
@@ -25,7 +25,16 @@ const authRows = [
   },
 ];
 
-export function AuthShell({ mode }: { mode: "login" | "signup" }) {
+export function AuthShell({
+  mode,
+  notice,
+}: {
+  mode: "login" | "signup";
+  notice?: {
+    description: string;
+    title: string;
+  };
+}) {
   const isSignup = mode === "signup";
 
   return (
@@ -116,6 +125,20 @@ export function AuthShell({ mode }: { mode: "login" | "signup" }) {
                 </div>
 
                 {!isSupabaseConfigured() ? <SetupNotice compact showAction={false} /> : null}
+
+                {notice ? (
+                  <div className="rounded-[24px] border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-900">
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 rounded-full bg-amber-100 p-1.5 text-amber-700">
+                        <AlertTriangle className="h-4 w-4" />
+                      </span>
+                      <div>
+                        <p className="font-semibold text-foreground">{notice.title}</p>
+                        <p className="mt-1 leading-6 text-secondary-foreground">{notice.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
 
                 <AuthForm mode={mode} />
 

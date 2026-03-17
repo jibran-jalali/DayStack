@@ -14,7 +14,7 @@ import {
 
 import { Button, buttonVariants } from "@/components/shared/button";
 import { StatusChip } from "@/components/shared/status-chip";
-import { formatClockTime, formatParticipantNames } from "@/lib/daystack";
+import { formatClockTime, formatParticipantNames, isBlockedTask } from "@/lib/daystack";
 import type { DashboardSummary, PlannerDateMode, PlannerTask } from "@/types/daystack";
 
 interface ExecutionLaneProps {
@@ -211,15 +211,24 @@ export function ExecutionLane({
 }: ExecutionLaneProps) {
   const allowCompletion = dateMode !== "future";
   const meetingCount = tasks.filter((task) => task.task_type === "meeting").length;
+  const blockedCount = tasks.filter((task) => isBlockedTask(task)).length;
   const laneHeadline =
     dateMode === "today" ? "Execution Lane" : dateMode === "future" ? "Planning Lane" : "Review Lane";
   const primaryMetricLabel =
-    dateMode === "future" ? `${summary.totalTasks} planned` : `${summary.executionScore}%`;
+    dateMode === "future"
+      ? summary.totalTasks > 0
+        ? `${summary.totalTasks} planned`
+        : blockedCount > 0
+          ? `${blockedCount} blocked`
+          : "Open day"
+      : `${summary.executionScore}%`;
   const primaryMetricTone = dateMode === "future" ? "default" : "brand";
   const endOfDayNote =
     dateMode === "future"
       ? summary.totalTasks === 0
-        ? "Nothing is planned for this day yet."
+        ? blockedCount > 0
+          ? `${blockedCount} blocked zone${blockedCount === 1 ? "" : "s"} are placed for this day.`
+          : "Nothing is planned for this day yet."
         : `${summary.totalTasks} block${summary.totalTasks === 1 ? "" : "s"} are ready for this day.`
       : summary.totalTasks === 0
         ? "No blocks planned yet."
@@ -346,8 +355,8 @@ export function ExecutionLane({
                 <p className="mt-1 font-semibold text-foreground">{meetingCount}</p>
               </div>
               <div className="rounded-[16px] border border-border/70 bg-white/70 px-3 py-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary-foreground/70">Open</p>
-                <p className="mt-1 font-semibold text-foreground">{summary.incompleteTasks}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary-foreground/70">Blocked</p>
+                <p className="mt-1 font-semibold text-foreground">{blockedCount}</p>
               </div>
             </div>
             <p className="mt-3 text-sm text-secondary-foreground">No live score appears until the day begins.</p>

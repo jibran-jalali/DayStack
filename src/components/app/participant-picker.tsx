@@ -1,12 +1,11 @@
 "use client";
 
-import { useDeferredValue, useEffect, useEffectEvent, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { Search, UserPlus, X } from "lucide-react";
 
 import { Button } from "@/components/shared/button";
 import { Input } from "@/components/shared/input";
-import { searchProfiles } from "@/lib/data/daystack";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { searchParticipantCandidates } from "@/lib/data/participants";
 import { getErrorMessage } from "@/lib/utils";
 import type { ParticipantProfile } from "@/types/daystack";
 
@@ -27,32 +26,38 @@ export function ParticipantPicker({
   const [results, setResults] = useState<ParticipantProfile[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const searchIdRef = useRef(0);
   const deferredQuery = useDeferredValue(query);
   const selectedIds = useMemo(() => new Set(value.map((participant) => participant.id)), [value]);
 
   const runSearch = useEffectEvent(async (term: string) => {
-    const supabase = createSupabaseBrowserClient();
-
-    if (!supabase) {
-      setResults([]);
-      return;
-    }
+    const searchId = searchIdRef.current + 1;
+    searchIdRef.current = searchId;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const profiles = await searchProfiles(supabase, term, {
-        excludeUserId: currentUserId,
-        limit: 6,
-      });
+      const profiles = await searchParticipantCandidates(term, 6);
 
-      setResults(profiles.filter((profile) => !selectedIds.has(profile.id)));
+      if (searchId !== searchIdRef.current) {
+        return;
+      }
+
+      setResults(
+        profiles.filter((profile) => profile.id !== currentUserId && !selectedIds.has(profile.id)),
+      );
     } catch (searchError) {
+      if (searchId !== searchIdRef.current) {
+        return;
+      }
+
       setResults([]);
       setError(getErrorMessage(searchError));
     } finally {
-      setIsLoading(false);
+      if (searchId === searchIdRef.current) {
+        setIsLoading(false);
+      }
     }
   });
 
@@ -80,7 +85,7 @@ export function ParticipantPicker({
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary-foreground/70" />
         <Input
           className="pl-10"
-          placeholder="Search people"
+          placeholder="Search people to mention"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           disabled={disabled}
@@ -120,17 +125,24 @@ export function ParticipantPicker({
                 key={participant.id}
                 suppressHydrationWarning
                 type="button"
-                className="flex w-full items-center justify-between px-4 py-3 text-left text-sm transition hover:bg-white/70"
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm transition hover:bg-white/70"
                 onClick={() => handleSelectParticipant(participant)}
                 disabled={disabled}
               >
-                <span className="font-medium text-foreground">{participant.fullName}</span>
+                <span className="min-w-0">
+                  <span className="block truncate font-medium text-foreground">{participant.fullName}</span>
+                  {participant.email ? (
+                    <span className="block truncate text-xs text-secondary-foreground">{participant.email}</span>
+                  ) : null}
+                </span>
                 <UserPlus className="h-4 w-4 text-secondary-foreground" />
               </button>
             ))}
           </div>
         ) : (
-          <p className="px-4 py-3 text-sm text-secondary-foreground">{error ?? "No people to add yet."}</p>
+          <p className="px-4 py-3 text-sm text-secondary-foreground">
+            {error ?? "No people to add yet. Search by name or email."}
+          </p>
         )}
       </div>
 

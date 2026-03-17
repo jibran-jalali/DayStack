@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import { Flame, LoaderCircle, LogOut, Plus, Settings2 } from "lucide-react";
 import { useTransition } from "react";
 
+import { NotificationCenter } from "@/components/app/notification-center";
 import { ViewToggle, type PlannerViewMode } from "@/components/app/view-toggle";
 import { Button } from "@/components/shared/button";
 import { logoutOneSignalUser } from "@/lib/onesignal/client";
@@ -12,7 +13,7 @@ import { Logo } from "@/components/shared/logo";
 import { StatusChip } from "@/components/shared/status-chip";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { cn, getErrorMessage } from "@/lib/utils";
-import type { PlannerDateMode } from "@/types/daystack";
+import type { PlannerDateMode, TaskNotificationAcceptResult } from "@/types/daystack";
 
 interface PlannerHeaderProps {
   activePage: "planner" | "settings";
@@ -24,13 +25,16 @@ interface PlannerHeaderProps {
   metricLabel?: string;
   metricTone?: "brand" | "default" | "success" | "warning";
   onAddTask?: () => void;
+  onNotice?: (notice: { message: string; type: "error" | "success" }) => void;
   onSignOutError: (message: string) => void;
+  onTaskAccepted?: (result: TaskNotificationAcceptResult) => Promise<void> | void;
   onViewChange?: (value: PlannerViewMode) => void;
   plannerHref?: string;
   settingsHighlighted?: boolean;
   settingsHref?: string;
   streak?: number;
   subtitle?: string;
+  userId: string;
   viewMode?: PlannerViewMode;
 }
 
@@ -60,13 +64,16 @@ export function PlannerHeader({
   metricLabel,
   metricTone = "brand",
   onAddTask,
+  onNotice,
   onSignOutError,
+  onTaskAccepted,
   onViewChange,
   plannerHref = "/app",
   settingsHighlighted,
   settingsHref = "/app/settings",
   streak,
   subtitle,
+  userId,
   viewMode,
 }: PlannerHeaderProps) {
   const [isPending, startTransition] = useTransition();
@@ -164,6 +171,8 @@ export function PlannerHeader({
               Add Block
             </Button>
           ) : null}
+
+          <NotificationCenter userId={userId} onNotice={onNotice} onTaskAccepted={onTaskAccepted} />
 
           <div className="flex items-center gap-2 rounded-full border border-border/80 bg-white/92 px-2 py-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(24,190,239,0.16),rgba(109,40,240,0.16))] text-sm font-semibold text-foreground">

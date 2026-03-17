@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { CalendarRange, CheckCircle2, Plus, Users, Video } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarRange, CheckCircle2, GripVertical, Plus, Users, Video } from "lucide-react";
 
 import { Button } from "@/components/shared/button";
 import {
@@ -8,6 +8,8 @@ import {
   formatParticipantNames,
   getTaskAnchorId,
   getTimelineTaskLayouts,
+  isBlockedTask,
+  minutesToTime,
   toMinutes,
 } from "@/lib/daystack";
 import { cn } from "@/lib/utils";
@@ -19,13 +21,15 @@ interface TimelineGridProps {
   now: Date;
   onAddTask: (startTime?: string) => void;
   onEditTask: (task: PlannerTask) => void;
+  onRescheduleTask: (task: PlannerTask, nextStartTime: string, nextEndTime: string) => void;
   onToggleTask: (task: PlannerTask) => void;
   resolveVisualState: (task: PlannerTask) => TaskVisualState;
   taskDate: string;
   tasks: PlannerTask[];
 }
 
-const SLOT_HEIGHT = 40;
+const TIMELINE_INTERVAL = 15;
+const SLOT_HEIGHT = 24;
 const DEFAULT_START_MINUTES = 6 * 60;
 const DEFAULT_END_MINUTES = 22 * 60;
 const OVERLAP_GAP = 6;
@@ -54,6 +58,30 @@ const accentStyles: Record<TaskVisualState, string> = {
   overdue: "bg-rose-400",
 };
 
+const blockedBlockStyles: Record<TaskVisualState, string> = {
+  active: "border-slate-300 bg-slate-200/90 shadow-[0_14px_24px_rgba(71,85,105,0.1)]",
+  completed: "border-slate-300 bg-slate-100/92 shadow-[0_12px_22px_rgba(71,85,105,0.08)]",
+  upcoming: "border-slate-300 bg-slate-100/92 shadow-[0_12px_22px_rgba(71,85,105,0.08)]",
+  pending: "border-slate-300 bg-slate-100/94 shadow-[0_12px_22px_rgba(71,85,105,0.08)]",
+  overdue: "border-slate-400 bg-slate-200/92 shadow-[0_12px_22px_rgba(71,85,105,0.1)]",
+};
+
+const blockedTextStyles: Record<TaskVisualState, string> = {
+  active: "text-slate-800",
+  completed: "text-slate-700",
+  upcoming: "text-slate-800",
+  pending: "text-slate-800",
+  overdue: "text-slate-900",
+};
+
+const blockedAccentStyles: Record<TaskVisualState, string> = {
+  active: "bg-slate-500",
+  completed: "bg-slate-400",
+  upcoming: "bg-slate-400",
+  pending: "bg-slate-400",
+  overdue: "bg-slate-600",
+};
+
 const stateLabels: Record<TaskVisualState, string> = {
   active: "Active",
   completed: "Done",
@@ -66,18 +94,15 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function minutesToTime(value: number) {
-  const hours = Math.floor(value / 60);
-  const minutes = value % 60;
-
-  return `${`${hours}`.padStart(2, "0")}:${`${minutes}`.padStart(2, "0")}`;
-}
-
 function formatTimelineLabel(value: number) {
   const hours = Math.floor(value / 60);
   const minutes = value % 60;
   const displayHours = hours % 12 || 12;
   const suffix = hours >= 12 ? "PM" : "AM";
+
+  if (minutes % 30 !== 0) {
+    return "";
+  }
 
   return minutes === 0 ? `${displayHours} ${suffix}` : `${displayHours}:30`;
 }
@@ -105,15 +130,18 @@ function getTimelineBounds(tasks: PlannerTask[], now: Date, taskDate: string) {
   }
 
   return {
-    startMinutes: clamp(Math.min(...startCandidates), 0, 23 * 60),
-    endMinutes: clamp(Math.max(...endCandidates), DEFAULT_START_MINUTES + 60, 24 * 60),
+    startMinutes:
+      Math.floor(clamp(Math.min(...startCandidates), 0, 23 * 60) / TIMELINE_INTERVAL) * TIMELINE_INTERVAL,
+    endMinutes:
+      Math.ceil(clamp(Math.max(...endCandidates), DEFAULT_START_MINUTES + 60, 24 * 60) / TIMELINE_INTERVAL) *
+      TIMELINE_INTERVAL,
   };
 }
 
 function getSlots(startMinutes: number, endMinutes: number) {
   const slots: number[] = [];
 
-  for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
+  for (let minutes = startMinutes; minutes < endMinutes; minutes += TIMELINE_INTERVAL) {
     slots.push(minutes);
   }
 
@@ -131,22 +159,141 @@ function getLayoutStyles(column: number, columns: number) {
   return { left, width };
 }
 
+type BlockDensity = "compact" | "full" | "micro";
+
+function getBlockDensity(rawHeight: number, columns: number): BlockDensity {
+  if (rawHeight < 42 || columns > 2) {
+    return "micro";
+  }
+
+  if (rawHeight < 90 || columns > 1) {
+    return "compact";
+  }
+
+  return "full";
+}
+
+function getBlockMetrics(startMinutes: number, endMinutes: number, timelineStartMinutes: number) {
+  const rawHeight = ((endMinutes - startMinutes) / TIMELINE_INTERVAL) * SLOT_HEIGHT;
+  const desiredGap = rawHeight < 36 ? 2 : rawHeight < 84 ? 4 : 6;
+  const maxHeight = rawHeight > 2.5 ? rawHeight - 0.75 : rawHeight;
+  const minimumReadableHeight = rawHeight < 18 ? maxHeight : Math.min(22, maxHeight);
+  const height = Math.min(Math.max(rawHeight - desiredGap, minimumReadableHeight), maxHeight);
+  const topOffset = ((startMinutes - timelineStartMinutes) / TIMELINE_INTERVAL) * SLOT_HEIGHT + (rawHeight - height) / 2;
+
+  return {
+    height,
+    rawHeight,
+    topOffset,
+  };
+}
+
+interface DragState {
+  durationMinutes: number;
+  pointerOffsetMinutes: number;
+  previewStartMinutes: number;
+  startMinutes: number;
+  task: PlannerTask;
+}
+
 export function TimelineGrid({
   focusedTaskId,
   isPending,
   now,
   onAddTask,
   onEditTask,
+  onRescheduleTask,
   onToggleTask,
   resolveVisualState,
   taskDate,
   tasks,
 }: TimelineGridProps) {
+  const surfaceRef = useRef<HTMLDivElement | null>(null);
+  const dragStateRef = useRef<DragState | null>(null);
   const { startMinutes, endMinutes } = useMemo(() => getTimelineBounds(tasks, now, taskDate), [now, taskDate, tasks]);
+  const [dragState, setDragState] = useState<DragState | null>(null);
   const slots = useMemo(() => getSlots(startMinutes, endMinutes), [endMinutes, startMinutes]);
   const layouts = useMemo(() => getTimelineTaskLayouts(tasks), [tasks]);
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const showCurrentLine = formatDateKey(now) === taskDate && currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+  const isDragging = dragState !== null;
+
+  useEffect(() => {
+    dragStateRef.current = dragState;
+  }, [dragState]);
+
+  useEffect(() => {
+    if (!dragStateRef.current) {
+      return;
+    }
+
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+
+    function getPreviewStartMinutes(pointerY: number) {
+      const currentDrag = dragStateRef.current;
+
+      if (!currentDrag) {
+        return startMinutes;
+      }
+
+      if (!surfaceRef.current) {
+        return currentDrag.startMinutes;
+      }
+
+      const rect = surfaceRef.current.getBoundingClientRect();
+      const pointerMinutes = startMinutes + ((pointerY - rect.top) / SLOT_HEIGHT) * TIMELINE_INTERVAL;
+      const rawStartMinutes = pointerMinutes - currentDrag.pointerOffsetMinutes;
+      const snappedStartMinutes = Math.round(rawStartMinutes / TIMELINE_INTERVAL) * TIMELINE_INTERVAL;
+
+      return clamp(
+        snappedStartMinutes,
+        startMinutes,
+        Math.max(startMinutes, endMinutes - currentDrag.durationMinutes),
+      );
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+      setDragState((current) =>
+        current
+          ? {
+              ...current,
+              previewStartMinutes: getPreviewStartMinutes(event.clientY),
+            }
+          : current,
+      );
+    }
+
+    function handlePointerUp() {
+      const currentDrag = dragStateRef.current;
+
+      setDragState(null);
+      document.body.style.userSelect = previousUserSelect;
+
+      if (!currentDrag) {
+        return;
+      }
+
+      if (currentDrag.previewStartMinutes === currentDrag.startMinutes) {
+        return;
+      }
+
+      onRescheduleTask(
+        currentDrag.task,
+        minutesToTime(currentDrag.previewStartMinutes),
+        minutesToTime(currentDrag.previewStartMinutes + currentDrag.durationMinutes),
+      );
+    }
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp, { once: true });
+
+    return () => {
+      document.body.style.userSelect = previousUserSelect;
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [endMinutes, isDragging, onRescheduleTask, startMinutes]);
 
   return (
     <div className="grid grid-cols-[3.9rem_minmax(0,1fr)] gap-3 sm:grid-cols-[4.5rem_minmax(0,1fr)]">
@@ -154,7 +301,8 @@ export function TimelineGrid({
         {slots.map((slot) => (
           <div
             key={slot}
-            className="flex h-[40px] items-start justify-end pr-2 pt-0.5 text-[11px] font-medium tabular-nums text-secondary-foreground sm:pr-3 sm:text-xs"
+            className="flex items-start justify-end pr-2 pt-0.5 text-[11px] font-medium tabular-nums text-secondary-foreground sm:pr-3 sm:text-xs"
+            style={{ height: `${SLOT_HEIGHT}px` }}
           >
             {formatTimelineLabel(slot)}
           </div>
@@ -170,16 +318,22 @@ export function TimelineGrid({
           </div>
         ) : null}
 
-        <div className="relative">
+        <div ref={surfaceRef} className="relative">
           {slots.map((slot, index) => (
             <button
               key={slot}
               suppressHydrationWarning
               type="button"
               className={cn(
-                "group relative block h-[40px] w-full border-t border-border/60 text-left transition-[background-color,opacity] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cyan-50/32 focus:bg-cyan-50/32 focus:outline-none",
+                "group relative block w-full text-left transition-[background-color,opacity] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-cyan-50/32 focus:bg-cyan-50/32 focus:outline-none",
+                slot % 60 === 0
+                  ? "border-t border-border/75"
+                  : slot % 30 === 0
+                    ? "border-t border-border/55"
+                    : "border-t border-dashed border-border/35",
                 index === 0 && "border-t-0",
               )}
+              style={{ height: `${SLOT_HEIGHT}px` }}
               onClick={() => onAddTask(minutesToTime(slot))}
               aria-label={`Add task at ${formatClockTime(minutesToTime(slot))}`}
             >
@@ -193,7 +347,7 @@ export function TimelineGrid({
           {showCurrentLine ? (
             <div
               className="pointer-events-none absolute inset-x-3 z-20"
-              style={{ top: `${((currentMinutes - startMinutes) / 30) * SLOT_HEIGHT}px` }}
+              style={{ top: `${((currentMinutes - startMinutes) / TIMELINE_INTERVAL) * SLOT_HEIGHT}px` }}
             >
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_0_6px_rgba(20,150,232,0.14)]" />
@@ -206,12 +360,29 @@ export function TimelineGrid({
             {layouts.map((layout) => {
               const task = layout.task;
               const visualState = resolveVisualState(task);
-              const startOffset = ((layout.startMinutes - startMinutes) / 30) * SLOT_HEIGHT;
-              const blockHeight = Math.max(((layout.endMinutes - layout.startMinutes) / 30) * SLOT_HEIGHT - 8, 42);
-              const isCompact = blockHeight < 74 || layout.columns > 2;
-              const isTight = blockHeight < 90 || layout.columns > 1;
+              const isBlocked = isBlockedTask(task);
+              const effectiveStartMinutes =
+                dragState?.task.id === task.id ? dragState.previewStartMinutes : layout.startMinutes;
+              const effectiveEndMinutes =
+                dragState?.task.id === task.id
+                  ? dragState.previewStartMinutes + dragState.durationMinutes
+                  : layout.endMinutes;
+              const { height: blockHeight, rawHeight, topOffset } = getBlockMetrics(
+                effectiveStartMinutes,
+                effectiveEndMinutes,
+                startMinutes,
+              );
+              const density = getBlockDensity(rawHeight, layout.columns);
+              const isCompact = density !== "full";
+              const isMicro = density === "micro";
+              const isTight = density === "micro" || layout.columns > 1;
               const isMeeting = task.task_type === "meeting";
               const { left, width } = getLayoutStyles(layout.column, layout.columns);
+              const controlButtonClass = isMicro
+                ? "h-5 w-5 rounded-full border border-white/70 bg-white/88 px-0 text-secondary-foreground shadow-[0_6px_14px_rgba(15,23,42,0.05)] hover:bg-white"
+                : density === "compact"
+                  ? "h-7 w-7 rounded-full border border-white/70 bg-white/86 px-0 text-secondary-foreground shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-white"
+                  : "h-8 w-8 rounded-full border border-white/70 bg-white/84 px-0 text-secondary-foreground shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-white";
 
               return (
                 <div
@@ -219,21 +390,30 @@ export function TimelineGrid({
                   id={getTaskAnchorId(task.id)}
                   className={cn(
                     "pointer-events-auto absolute z-10 overflow-hidden rounded-[20px] border transition-[transform,box-shadow,border-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                    blockStyles[visualState],
+                    isBlocked ? blockedBlockStyles[visualState] : blockStyles[visualState],
+                    dragState?.task.id === task.id && "shadow-[0_18px_34px_rgba(15,23,42,0.14)] ring-2 ring-primary/25",
                     focusedTaskId === task.id && "ring-2 ring-primary/35 ring-offset-2 ring-offset-background",
                   )}
                   style={{
-                    top: `${startOffset + 4}px`,
+                    top: `${topOffset}px`,
                     height: `${blockHeight}px`,
                     left,
                     width,
+                    zIndex: dragState?.task.id === task.id ? 30 : focusedTaskId === task.id ? 20 : 10 + layout.column,
                   }}
                 >
                   <div
                     suppressHydrationWarning
                     role="button"
                     tabIndex={0}
-                    className="relative h-full cursor-pointer px-3 py-3 pr-12 text-left transition-transform duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.002] focus:outline-none"
+                    className={cn(
+                      "relative h-full cursor-pointer text-left focus:outline-none",
+                      isMicro
+                        ? "px-2.5 py-1.5 pr-14"
+                        : density === "compact"
+                          ? "px-3 py-2.5 pr-[4.5rem]"
+                          : "px-3 py-3 pr-24 sm:pr-[6.75rem]",
+                    )}
                     onClick={() => onEditTask(task)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
@@ -242,50 +422,130 @@ export function TimelineGrid({
                       }
                     }}
                   >
-                    <span className={cn("absolute inset-y-3 left-2 w-1 rounded-full", accentStyles[visualState])} />
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 pl-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          {isMeeting ? (
-                            <Video className="h-3.5 w-3.5 shrink-0 text-primary" />
-                          ) : (
-                            <CalendarRange className="h-3.5 w-3.5 shrink-0 text-secondary-foreground" />
+                    <span
+                      className={cn(
+                        "absolute left-2 w-1 rounded-full",
+                        isMicro ? "inset-y-2" : "inset-y-3",
+                        isBlocked ? blockedAccentStyles[visualState] : accentStyles[visualState],
+                      )}
+                    />
+                    <div className={cn("min-w-0 pl-2", isMicro && "pt-0.5")}>
+                      <div className={cn("flex min-w-0 items-center gap-2", isMicro && "gap-1.5")}>
+                        {isMeeting ? (
+                          <Video className={cn("shrink-0 text-primary", isMicro ? "h-3 w-3" : "h-3.5 w-3.5")} />
+                        ) : isBlocked ? (
+                          <CalendarRange className={cn("shrink-0 text-slate-500", isMicro ? "h-3 w-3" : "h-3.5 w-3.5")} />
+                        ) : (
+                          <CalendarRange
+                            className={cn("shrink-0 text-secondary-foreground", isMicro ? "h-3 w-3" : "h-3.5 w-3.5")}
+                          />
+                        )}
+                        <p
+                          className={cn(
+                            isMicro ? "truncate text-[11px] font-semibold leading-tight" : "truncate text-sm font-semibold",
+                            isBlocked ? blockedTextStyles[visualState] : blockTextStyles[visualState],
                           )}
-                          <p className={cn("truncate text-sm font-semibold", blockTextStyles[visualState])}>{task.title}</p>
-                        </div>
-                        {!isCompact ? (
-                          <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-secondary-foreground">
-                            {formatClockTime(task.start_time)} to {formatClockTime(task.end_time)}
-                          </p>
-                        ) : null}
-                        {isMeeting && task.participants.length > 0 && !isTight ? (
-                          <p className="mt-1 inline-flex max-w-full items-center gap-1.5 truncate text-[11px] text-secondary-foreground">
-                            <Users className="h-3.5 w-3.5 shrink-0" />
-                            {formatParticipantNames(task.participants, layout.columns > 1 ? 1 : 2)}
-                          </p>
-                        ) : null}
+                        >
+                          {task.title}
+                        </p>
                       </div>
                       {!isCompact ? (
-                        <span className="rounded-full border border-white/70 bg-white/82 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-secondary-foreground">
-                          {stateLabels[visualState]}
-                        </span>
+                        <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-secondary-foreground">
+                          {formatClockTime(minutesToTime(effectiveStartMinutes))} to{" "}
+                          {formatClockTime(minutesToTime(effectiveEndMinutes))}
+                        </p>
+                      ) : density === "compact" ? (
+                        <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-secondary-foreground">
+                          {formatClockTime(minutesToTime(effectiveStartMinutes))}
+                        </p>
+                      ) : null}
+                      {isMeeting && task.participants.length > 0 && !isTight ? (
+                        <p className="mt-1 inline-flex max-w-full items-center gap-1.5 truncate text-[11px] text-secondary-foreground">
+                          <Users className="h-3.5 w-3.5 shrink-0" />
+                          {formatParticipantNames(task.participants, layout.columns > 1 ? 1 : 2)}
+                        </p>
                       ) : null}
                     </div>
                   </div>
 
-                  <Button
-                    size="sm"
-                    variant={task.status === "completed" ? "secondary" : "ghost"}
-                    className="absolute right-2 top-2 h-8 w-8 rounded-full border border-white/70 bg-white/84 px-0 text-secondary-foreground shadow-[0_8px_18px_rgba(15,23,42,0.05)] hover:bg-white"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onToggleTask(task);
-                    }}
-                    disabled={isPending}
-                    aria-label={task.status === "completed" ? `Mark ${task.title} pending` : `Mark ${task.title} complete`}
+                  <div
+                    className={cn(
+                      "pointer-events-none absolute right-2.5 flex",
+                      isMicro ? "inset-y-0 items-center" : "top-2.5 flex-col items-end gap-1.5",
+                    )}
                   >
-                    <CheckCircle2 className="h-4 w-4" />
-                  </Button>
+                    {density === "full" ? (
+                      <span className="rounded-full border border-white/70 bg-white/82 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-secondary-foreground shadow-[0_8px_18px_rgba(15,23,42,0.05)]">
+                        {isBlocked ? "Blocked" : stateLabels[visualState]}
+                      </span>
+                    ) : null}
+
+                    <div
+                      className={cn(
+                        "pointer-events-auto flex items-center",
+                        isMicro ? "gap-1 pr-0.5" : density === "compact" ? "gap-1.5" : "gap-1.5",
+                      )}
+                    >
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className={controlButtonClass}
+                        onPointerDown={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+
+                          if (isPending) {
+                            return;
+                          }
+
+                          const rect = surfaceRef.current?.getBoundingClientRect();
+
+                          if (!rect) {
+                            return;
+                          }
+
+                          const taskStartMinutes = toMinutes(task.start_time);
+                          const taskEndMinutes = toMinutes(task.end_time);
+                          const pointerMinutes =
+                            startMinutes + ((event.clientY - rect.top) / SLOT_HEIGHT) * TIMELINE_INTERVAL;
+
+                          setDragState({
+                            durationMinutes: taskEndMinutes - taskStartMinutes,
+                            pointerOffsetMinutes: clamp(
+                              pointerMinutes - taskStartMinutes,
+                              0,
+                              taskEndMinutes - taskStartMinutes,
+                            ),
+                            previewStartMinutes: taskStartMinutes,
+                            startMinutes: taskStartMinutes,
+                            task,
+                          });
+                        }}
+                        disabled={isPending}
+                        aria-label={`Move ${task.title}`}
+                      >
+                        <GripVertical className={cn(isMicro ? "h-3 w-3" : "h-4 w-4")} />
+                      </Button>
+
+                      {!isBlocked ? (
+                        <Button
+                          size="sm"
+                          variant={task.status === "completed" ? "secondary" : "ghost"}
+                          className={controlButtonClass}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onToggleTask(task);
+                          }}
+                          disabled={isPending}
+                          aria-label={
+                            task.status === "completed" ? `Mark ${task.title} pending` : `Mark ${task.title} complete`
+                          }
+                        >
+                          <CheckCircle2 className={cn(isMicro ? "h-3 w-3" : "h-4 w-4")} />
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               );
             })}
