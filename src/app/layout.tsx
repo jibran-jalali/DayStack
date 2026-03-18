@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Sora } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "./globals.css";
 
@@ -52,6 +53,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${sora.variable} bg-background text-foreground antialiased`}>
         {children}
+        <SpeedInsights />
       </body>
     </html>
   );
